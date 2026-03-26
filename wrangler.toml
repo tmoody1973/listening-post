@@ -1,0 +1,40 @@
+name = "listening-post"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── Durable Objects (Agents) ──────────────────────────────
+[durable_objects]
+bindings = [
+  { name = "EPISODE_AGENT", class_name = "EpisodeAgent" },
+  { name = "NEWSROOM_AGENT", class_name = "NewsroomAgent" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EpisodeAgent", "NewsroomAgent"]
+
+# ─── D1 (published content) ───────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "listening-post-db"
+database_id = "194f2165-9f74-4f3c-a276-14deb63a6f2b"
+
+# ─── R2 (audio + images) ──────────────────────────────────
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "listening-post-media"
+
+# ─── KV (config + FRED cache) ─────────────────────────────
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "450ec6fe1da4497a95c150aa29b30f3d"
+
+# ─── Vectorize (editorial memory) ─────────────────────────
+[[vectorize]]
+binding = "STORY_INDEX"
+index_name = "story-embeddings"
+
+# ─── Workers AI ───────────────────────────────────────────
+[ai]
+binding = "AI"

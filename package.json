@@ -1,0 +1,21 @@
+{
+  "name": "listening-post",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered local news platform for Milwaukee — Cloudflare x ElevenLabs hackathon",
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute listening-post-db --file=./scripts/schema.sql --remote",
+    "db:migrate:local": "wrangler d1 execute listening-post-db --file=./scripts/schema.sql --local"
+  },
+  "dependencies": {
+    "agents": "^0.8.6",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250313.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}
