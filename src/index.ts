@@ -20,26 +20,39 @@ app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromPerigon } = await import("./ingestion/perigon");
   const { ingestFromCongress } = await import("./ingestion/congress");
   const { ingestFromFRED } = await import("./ingestion/fred");
-
+  const { ingestFromOpenStates } = await import("./ingestion/openstates");
+  const { ingestFromPerplexity } = await import("./ingestion/perplexity");
+  // Phase 1: Ingest from all data sources in parallel
   const results = await Promise.allSettled([
     ingestFromPerigon(c.env),
     ingestFromCongress(c.env),
     ingestFromFRED(c.env),
+    ingestFromOpenStates(c.env),
   ]);
 
-  let storyCount = 0;
+  const allStories: unknown[] = [];
   const errors: string[] = [];
   for (const result of results) {
     if (result.status === "fulfilled") {
-      storyCount += (result.value as unknown[]).length;
+      allStories.push(...(result.value as unknown[]));
     } else {
       errors.push(String(result.reason));
     }
   }
 
+  // Phase 2: Editorial synthesis via Perplexity (needs stories first)
+  let briefing: string | null = null;
+  try {
+    const editorial = await ingestFromPerplexity(c.env, allStories as any);
+    briefing = editorial.briefing;
+  } catch (error) {
+    errors.push(`Perplexity: ${String(error)}`);
+  }
+
   return c.json({
     status: "ingestion complete",
-    storiesIngested: storyCount,
+    storiesIngested: allStories.length,
+    briefingLength: briefing?.length ?? 0,
     errors: errors.length > 0 ? errors : undefined,
   });
 });
