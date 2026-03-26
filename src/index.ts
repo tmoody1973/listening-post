@@ -18,12 +18,29 @@ app.all("/agents/*", async (c) => {
 // ─── Manual triggers (dev) ──────────────────────────────────
 app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromPerigon } = await import("./ingestion/perigon");
+  const { ingestFromCongress } = await import("./ingestion/congress");
+  const { ingestFromFRED } = await import("./ingestion/fred");
 
-  const stories = await ingestFromPerigon(c.env);
+  const results = await Promise.allSettled([
+    ingestFromPerigon(c.env),
+    ingestFromCongress(c.env),
+    ingestFromFRED(c.env),
+  ]);
+
+  let storyCount = 0;
+  const errors: string[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      storyCount += (result.value as unknown[]).length;
+    } else {
+      errors.push(String(result.reason));
+    }
+  }
+
   return c.json({
     status: "ingestion complete",
-    storiesIngested: stories.length,
-    topStory: stories.length > 0 ? stories[0].headline : null,
+    storiesIngested: storyCount,
+    errors: errors.length > 0 ? errors : undefined,
   });
 });
 
@@ -100,12 +117,19 @@ app.get("/api/topic/:topic", async (c) => {
 
 app.get("/api/data/:topic", async (c) => {
   const topic = c.req.param("topic");
-  const result = await c.env.DB.prepare(
-    "SELECT * FROM fred_observations WHERE series_id IN (SELECT series_id FROM fred_observations GROUP BY series_id) ORDER BY series_id, date DESC"
-  ).all();
+  const { FRED_SERIES } = await import("./types");
 
-  // TODO: Filter by topic using FRED_SERIES mapping
-  return c.json({ topic, observations: result.results });
+  const topicSeries = FRED_SERIES.filter((s) => s.topic === topic);
+  const seriesData: unknown[] = [];
+
+  for (const series of topicSeries) {
+    const cached = await c.env.CONFIG_KV.get(`fred:${series.id}`, "json");
+    if (cached) {
+      seriesData.push(cached);
+    }
+  }
+
+  return c.json({ topic, series: seriesData });
 });
 
 // ─── Media serving from R2 ──────────────────────────────────
