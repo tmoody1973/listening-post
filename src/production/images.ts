@@ -2,7 +2,7 @@ import type { Env } from "../types";
 import { GoogleGenAI } from "@google/genai";
 
 function buildImagePrompt(headline: string): string {
-  return `A wide cinematic editorial illustration in the style of New Yorker magazine. Stylized flat design with thick outlines, muted color palette of dusty blues, warm yellows, soft pinks, and deep purples. [${headline}]. Set against a dark atmospheric background. Subtle grain texture overlay, analog print feel, slight paper texture. Bold, confident linework. Modern editorial flat illustration, web feature header format, 16:9 widescreen composition, grain texture, risograph print aesthetic. No text on image.`;
+  return `A wide cinematic editorial illustration in the style of New Yorker magazine. Stylized flat design with thick outlines, muted color palette of dusty blues, warm yellows, soft pinks, and deep purples. [${headline}]. Set against a dark atmospheric background. Subtle grain texture overlay, analog print feel, slight paper texture. Bold, confident linework. Modern editorial flat illustration, web feature header format, 16:9 widescreen composition, grain texture, risograph print aesthetic. ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO CAPTIONS, NO TITLES, NO LABELS, NO WATERMARKS anywhere on the image. Pure illustration only.`;
 }
 
 async function generateWithGemini(env: Env, headline: string): Promise<ArrayBuffer | null> {
@@ -13,23 +13,52 @@ async function generateWithGemini(env: Env, headline: string): Promise<ArrayBuff
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-preview-image-generation",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { responseModalities: ["IMAGE", "TEXT"] },
+      config: {
+        responseModalities: ["IMAGE", "TEXT"],
+        generationConfig: {
+          imageGenerationConfig: {
+            numberOfImages: 1,
+          },
+        },
+      } as any,
     });
 
-    const parts = response.candidates?.[0]?.content?.parts ?? [];
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        // Decode base64 image
-        const binary = atob(part.inlineData.data);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
+    // Check all parts for image data
+    const candidates = (response as any).candidates ?? [];
+    for (const candidate of candidates) {
+      const parts = candidate?.content?.parts ?? [];
+      for (const part of parts) {
+        if (part?.inlineData?.data) {
+          const binary = atob(part.inlineData.data);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          console.log(`[Images] Gemini returned ${bytes.length} bytes`);
+          return bytes.buffer as ArrayBuffer;
         }
-        return bytes.buffer as ArrayBuffer;
       }
     }
 
-    console.error("[Images] Gemini returned no image data");
+    // Try alternate response structure
+    const resp = response as any;
+    if (resp.response?.candidates) {
+      for (const candidate of resp.response.candidates) {
+        for (const part of candidate?.content?.parts ?? []) {
+          if (part?.inlineData?.data) {
+            const binary = atob(part.inlineData.data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer as ArrayBuffer;
+          }
+        }
+      }
+    }
+
+    console.error("[Images] Gemini returned no image data. Response keys:", Object.keys(response ?? {}));
+    console.error("[Images] Full response:", JSON.stringify(response).slice(0, 500));
     return null;
   } catch (error) {
     console.error("[Images] Gemini generation failed:", error);
@@ -106,15 +135,8 @@ export async function generateMissingImages(env: Env): Promise<number> {
     // Try Gemini first, fall back to Flux
     let imageData: ArrayBuffer | null = null;
 
-    if (hasGemini) {
-      console.log(`[Images] Gemini: ${s.headline.slice(0, 50)}...`);
-      imageData = await generateWithGemini(env, s.headline);
-    }
-
-    if (!imageData) {
-      console.log(`[Images] Flux fallback: ${s.headline.slice(0, 50)}...`);
-      imageData = await generateWithFlux(env, s.headline);
-    }
+    console.log(`[Images] Generating: ${s.headline.slice(0, 50)}...`);
+    imageData = await generateWithFlux(env, s.headline);
 
     if (!imageData || imageData.byteLength < 1000) {
       console.error(`[Images] No image generated for ${s.id}`);
