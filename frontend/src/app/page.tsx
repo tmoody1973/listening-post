@@ -1,4 +1,4 @@
-import { fetchStories, fetchEpisodes, fetchManifest, fetchFloorData, getTopicColor, imageUrl } from "@/lib/api";
+import { fetchStories, fetchEpisodes, fetchManifest, fetchFloorData, getTopicColor, imageUrl, getSourceDisplay } from "@/lib/api";
 import { EditionPlayer } from "@/components/EditionPlayer";
 
 export const revalidate = 300;
@@ -84,7 +84,7 @@ export default async function HomePage() {
                   {leadStory.topic}
                 </span>
                 <span className="text-muted-foreground">◆</span>
-                <span className="text-muted-foreground">{leadStory.image_attribution ?? leadStory.source}</span>
+                <span className="text-muted-foreground">{getSourceDisplay(leadStory)}</span>
               </div>
               <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight leading-tight group-hover:text-[var(--color-coral)] transition-colors">
                 {leadStory.headline}
@@ -118,7 +118,7 @@ export default async function HomePage() {
                     {story.topic}
                   </span>
                   <span className="text-muted-foreground">◆</span>
-                  <span className="text-muted-foreground">{story.image_attribution ?? story.source}</span>
+                  <span className="text-muted-foreground">{getSourceDisplay(story)}</span>
                 </div>
                 <h3 className="text-sm font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
                   {story.headline}
@@ -258,7 +258,7 @@ export default async function HomePage() {
                 {story.topic}
               </span>
               <span className="text-muted-foreground">◆</span>
-              <span className="text-muted-foreground">{story.image_attribution ?? story.source}</span>
+              <span className="text-muted-foreground">{getSourceDisplay(story)}</span>
             </div>
             <h3 className="text-xs font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors line-clamp-3">
               {story.headline}
@@ -304,7 +304,7 @@ export default async function HomePage() {
                   <h4 className="text-sm font-bold uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors line-clamp-2">
                     {story.headline}
                   </h4>
-                  <span className="text-xs text-muted-foreground mt-1 block">{story.image_attribution ?? story.source}</span>
+                  <span className="text-xs text-muted-foreground mt-1 block">{getSourceDisplay(story)}</span>
                 </a>
               ))}
             </div>

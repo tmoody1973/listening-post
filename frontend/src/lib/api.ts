@@ -66,6 +66,21 @@ export async function fetchFloorData() {
   return res.json();
 }
 
+const INTERNAL_SOURCES = new Set(["perigon", "congress", "openstates", "fred", "perplexity", "AI-generated illustration", "OpenStates", "Congress.gov", "FRED"]);
+
+export function getSourceDisplay(story: { image_attribution?: string | null; source?: string; created_at?: string }): string {
+  // Show real publication name if available
+  const attrib = story.image_attribution;
+  if (attrib && !INTERNAL_SOURCES.has(attrib)) {
+    return attrib;
+  }
+  // Fall back to date
+  if (story.created_at) {
+    return new Date(story.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+  return "";
+}
+
 export function getTopicColor(topic: string): string {
   const colors: Record<string, string> = {
     housing: "var(--color-topic-housing)",
