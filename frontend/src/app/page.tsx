@@ -144,13 +144,33 @@ export default async function HomePage() {
             Congressional Record & President
           </h3>
           <div className="space-y-5">
-            {congressionalRecord.slice(0, 3).map((rec: any) => (
-              <div key={rec.id}>
-                <span className="text-xs text-muted-foreground">{rec.date}</span>
-                <p className="text-base font-black uppercase tracking-tight leading-snug mt-1">
+            {congressionalRecord.slice(0, 5).map((rec: any) => (
+              <a
+                key={rec.id}
+                href={rec.url ?? "#"}
+                target={rec.url ? "_blank" : undefined}
+                className="block group"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-muted-foreground">{rec.date}</span>
+                  {rec.section && rec.section !== "dailydigest" && (
+                    <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-blue-900/50 text-blue-400">
+                      {rec.section}
+                    </span>
+                  )}
+                  {rec.section === "dailydigest" && (
+                    <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-green-900/50 text-green-400">
+                      Daily Digest
+                    </span>
+                  )}
+                </div>
+                <p className="text-base font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
                   {rec.title}
                 </p>
-              </div>
+                {rec.description && (
+                  <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+                )}
+              </a>
             ))}
             {presidentialActions.slice(0, 3).map((action: any) => (
               <div key={action.id}>

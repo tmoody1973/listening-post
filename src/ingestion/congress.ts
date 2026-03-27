@@ -220,30 +220,83 @@ async function ingestCongressionalRecord(env: Env): Promise<void> {
   console.log("[Congress] Fetching Congressional Record...");
   try {
     const data = await congressFetch("/congressional-record?limit=5", env.CONGRESS_API_KEY) as {
-      Results?: { Issues?: { Issue?: unknown[] } };
+      Results?: {
+        Issues?: {
+          Congress?: string;
+          Id?: number;
+          Issue?: string;
+          Volume?: string;
+          PublishDate?: string;
+          Session?: string;
+          Links?: {
+            Digest?: { PDF?: { Url?: string }[] };
+            FullRecord?: { PDF?: { Url?: string }[] };
+            House?: { PDF?: { Url?: string }[] };
+            Senate?: { PDF?: { Url?: string }[] };
+          };
+        }[];
+      };
     };
 
-    const issues = data.Results?.Issues?.Issue ?? [];
+    const issues = data.Results?.Issues ?? [];
     for (const issue of issues) {
-      const rec = issue as { volumeNumber?: number; issueNumber?: string; publishDate?: string; url?: string; links?: { fullRecordLink?: string } };
-      const id = `record-${rec.volumeNumber}-${rec.issueNumber}`;
+      const id = `record-${issue.Volume}-${issue.Issue}`;
+      const digestUrl = issue.Links?.Digest?.PDF?.[0]?.Url ?? null;
+      const fullUrl = issue.Links?.FullRecord?.PDF?.[0]?.Url ?? null;
+      const houseUrl = issue.Links?.House?.PDF?.[0]?.Url ?? null;
+      const senateUrl = issue.Links?.Senate?.PDF?.[0]?.Url ?? null;
 
+      // Store the daily digest entry
       await env.DB.prepare(
-        `INSERT OR IGNORE INTO congressional_record (id, date, volume, issue_number, section, title, description, url, created_at)
+        `INSERT OR REPLACE INTO congressional_record (id, date, volume, issue_number, section, title, description, url, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       ).bind(
         id,
-        n(rec.publishDate),
-        n(rec.volumeNumber),
-        n(rec.issueNumber),
+        n(issue.PublishDate),
+        n(issue.Volume ? parseInt(issue.Volume) : null),
+        n(issue.Issue),
         "dailydigest",
-        `Congressional Record Vol. ${rec.volumeNumber}, No. ${rec.issueNumber}`,
-        null,
-        n(rec.links?.fullRecordLink ?? rec.url),
+        `Congressional Record — ${issue.PublishDate}`,
+        `Vol. ${issue.Volume}, No. ${issue.Issue} — Daily Digest, House, Senate, Extensions of Remarks`,
+        n(digestUrl ?? fullUrl),
       ).run();
+
+      // Store House section separately
+      if (houseUrl) {
+        await env.DB.prepare(
+          `INSERT OR REPLACE INTO congressional_record (id, date, volume, issue_number, section, title, description, url, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          `${id}-house`,
+          n(issue.PublishDate),
+          n(issue.Volume ? parseInt(issue.Volume) : null),
+          n(issue.Issue),
+          "house",
+          `House Proceedings — ${issue.PublishDate}`,
+          null,
+          n(houseUrl),
+        ).run();
+      }
+
+      // Store Senate section separately
+      if (senateUrl) {
+        await env.DB.prepare(
+          `INSERT OR REPLACE INTO congressional_record (id, date, volume, issue_number, section, title, description, url, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          `${id}-senate`,
+          n(issue.PublishDate),
+          n(issue.Volume ? parseInt(issue.Volume) : null),
+          n(issue.Issue),
+          "senate",
+          `Senate Proceedings — ${issue.PublishDate}`,
+          null,
+          n(senateUrl),
+        ).run();
+      }
     }
 
-    console.log(`[Congress] Stored ${issues.length} Congressional Record issues`);
+    console.log(`[Congress] Stored ${issues.length} Congressional Record issues with sections`);
   } catch (error) {
     console.error("[Congress] Congressional Record error:", error);
   }
