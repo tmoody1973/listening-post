@@ -22,6 +22,9 @@ app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromFRED } = await import("./ingestion/fred");
   const { ingestFromOpenStates } = await import("./ingestion/openstates");
   const { ingestFromPerplexity } = await import("./ingestion/perplexity");
+  const { triageStories } = await import("./production/triage");
+  const { embedStories } = await import("./vectorize/embeddings");
+
   // Phase 1: Ingest from all data sources in parallel
   const results = await Promise.allSettled([
     ingestFromPerigon(c.env),
@@ -30,29 +33,54 @@ app.post("/api/trigger/ingest", async (c) => {
     ingestFromOpenStates(c.env),
   ]);
 
-  const allStories: unknown[] = [];
+  const allStories: any[] = [];
   const errors: string[] = [];
   for (const result of results) {
     if (result.status === "fulfilled") {
-      allStories.push(...(result.value as unknown[]));
+      allStories.push(...(result.value as any[]));
     } else {
       errors.push(String(result.reason));
     }
   }
 
-  // Phase 2: Editorial synthesis via Perplexity (needs stories first)
+  // Phase 2: Workers AI triage — score relevance and correct topics
+  let triagedStories: any[] = [];
+  try {
+    triagedStories = await triageStories(c.env, allStories);
+  } catch (error) {
+    errors.push(`Triage: ${String(error)}`);
+    triagedStories = allStories;
+  }
+
+  // Phase 3: Vectorize — embed stories for editorial memory
+  try {
+    await embedStories(c.env, allStories);
+  } catch (error) {
+    errors.push(`Vectorize: ${String(error)}`);
+  }
+
+  // Phase 4: Editorial synthesis via Perplexity (uses triaged stories)
   let briefing: string | null = null;
   try {
-    const editorial = await ingestFromPerplexity(c.env, allStories as any);
+    const editorial = await ingestFromPerplexity(c.env, triagedStories);
     briefing = editorial.briefing;
   } catch (error) {
     errors.push(`Perplexity: ${String(error)}`);
   }
 
+  const highRelevance = triagedStories.filter((s: any) => s.relevance_score >= 0.6).length;
+
   return c.json({
     status: "ingestion complete",
     storiesIngested: allStories.length,
+    storiesTriaged: triagedStories.length,
+    highRelevance,
     briefingLength: briefing?.length ?? 0,
+    topStory: triagedStories.length > 0 ? {
+      headline: triagedStories[0].headline,
+      relevance: triagedStories[0].relevance_score,
+      topic: triagedStories[0].topic,
+    } : null,
     errors: errors.length > 0 ? errors : undefined,
   });
 });
@@ -106,7 +134,22 @@ app.get("/api/article/:slug", async (c) => {
     return c.json({ error: "Article not found" }, 404);
   }
 
-  return c.json({ article: result });
+  // Find related stories via Vectorize
+  let related: any[] = [];
+  try {
+    const { findRelatedStories } = await import("./vectorize/embeddings");
+    related = await findRelatedStories(
+      c.env,
+      result.id as string,
+      result.headline as string,
+      (result.summary as string) ?? "",
+      3
+    );
+  } catch {
+    // Vectorize might not be available locally
+  }
+
+  return c.json({ article: result, related });
 });
 
 app.get("/api/topic/:topic", async (c) => {
