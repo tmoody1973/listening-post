@@ -197,7 +197,11 @@ app.post("/api/trigger/produce", async (c) => {
     try {
       const assembled = await assembleEpisode(c.env, episodeId, actAudioKeys);
       finalR2Key = assembled.finalR2Key;
-      totalDuration = acts.reduce((sum: number, a: any) => sum + (a.durationSeconds ?? 0), 0);
+      // Use actual durations from file sizes, not estimates
+      assembled.actDurations.forEach((d, i) => {
+        if (acts[i]) acts[i].durationSeconds = d;
+      });
+      totalDuration = assembled.actDurations.reduce((sum, d) => sum + d, 0);
     } catch (error) {
       console.error("[Produce] Assembly failed:", error);
     }
@@ -349,6 +353,20 @@ app.get("/api/data/:topic", async (c) => {
   }
 
   return c.json({ topic, series: seriesData });
+});
+
+// ─── Episode manifest (act-by-act audio for gapless playback) ─
+app.get("/api/episode/:id/manifest", async (c) => {
+  const id = c.req.param("id");
+  const manifestKey = `audio/${id}/manifest.json`;
+  const object = await c.env.MEDIA_BUCKET.get(manifestKey);
+
+  if (!object) {
+    return c.json({ error: "Episode manifest not found" }, 404);
+  }
+
+  const manifest = await object.json();
+  return c.json(manifest);
 });
 
 // ─── Media serving from R2 ──────────────────────────────────

@@ -4,57 +4,73 @@ export async function assembleEpisode(
   env: Env,
   episodeId: string,
   actAudioKeys: string[]
-): Promise<{ finalR2Key: string; totalSize: number }> {
-  console.log(`[Assembler] Combining ${actAudioKeys.length} acts for ${episodeId}...`);
+): Promise<{ finalR2Key: string; totalSize: number; actDurations: number[] }> {
+  console.log(`[Assembler] Processing ${actAudioKeys.length} acts for ${episodeId}...`);
 
-  // Fetch all act audio from R2
-  const chunks: Uint8Array[] = [];
+  // Calculate actual duration from each act's file size (128kbps = 16000 bytes/sec)
+  const actDurations: number[] = [];
+  let totalSize = 0;
 
-  for (let i = 0; i < actAudioKeys.length; i++) {
-    const key = actAudioKeys[i];
-    const object = await env.MEDIA_BUCKET.get(key);
-    if (!object) {
-      console.error(`[Assembler] Missing audio: ${key}`);
-      continue;
+  for (const key of actAudioKeys) {
+    const head = await env.MEDIA_BUCKET.head(key);
+    if (head) {
+      const bytes = head.size;
+      const duration = Math.round(bytes / 16000);
+      actDurations.push(duration);
+      totalSize += bytes;
+      console.log(`[Assembler] ${key}: ${(bytes / 1024).toFixed(0)}KB, ~${duration}s`);
     }
+  }
+
+  // Store a manifest file that lists the act audio keys in order
+  // The frontend will play acts sequentially — no raw MP3 concat needed
+  const manifest = {
+    episodeId,
+    acts: actAudioKeys.map((key, i) => ({
+      r2Key: key,
+      url: `/${key}`,
+      durationSeconds: actDurations[i] ?? 0,
+    })),
+    totalDurationSeconds: actDurations.reduce((sum, d) => sum + d, 0),
+  };
+
+  const manifestKey = `audio/${episodeId}/manifest.json`;
+  await env.MEDIA_BUCKET.put(manifestKey, JSON.stringify(manifest), {
+    httpMetadata: { contentType: "application/json" },
+  });
+
+  // Also still create a concatenated file for direct download/RSS
+  // (some players handle it fine, and we need it for the podcast feed)
+  const chunks: Uint8Array[] = [];
+  for (let i = 0; i < actAudioKeys.length; i++) {
+    const object = await env.MEDIA_BUCKET.get(actAudioKeys[i]);
+    if (!object) continue;
     let buffer = new Uint8Array(await object.arrayBuffer());
 
-    // For acts after the first, strip the ID3v2 header to allow clean MP3 concatenation.
-    // ID3v2 starts with "ID3" (0x49, 0x44, 0x33). The header size is encoded in bytes 6-9.
+    // Strip ID3v2 header from acts 2+ for cleaner concatenation
     if (i > 0 && buffer.length > 10 && buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) {
       const headerSize = (buffer[6] << 21) | (buffer[7] << 14) | (buffer[8] << 7) | buffer[9];
-      const totalHeaderSize = headerSize + 10;
-      buffer = buffer.slice(totalHeaderSize);
-      console.log(`[Assembler] Stripped ${totalHeaderSize} byte ID3 header from act ${i + 1}`);
+      buffer = buffer.slice(headerSize + 10);
     }
-
     chunks.push(buffer);
   }
 
-  if (chunks.length === 0) {
-    throw new Error("No audio chunks to assemble");
-  }
-
-  // Concatenate MP3 frames
-  const totalSize = chunks.reduce((sum, c) => sum + c.byteLength, 0);
-  const combined = new Uint8Array(totalSize);
+  const concatSize = chunks.reduce((sum, c) => sum + c.byteLength, 0);
+  const combined = new Uint8Array(concatSize);
   let offset = 0;
   for (const chunk of chunks) {
     combined.set(chunk, offset);
     offset += chunk.byteLength;
   }
 
-  // Upload final episode to R2
   const finalR2Key = `audio/${episodeId}/final.mp3`;
   await env.MEDIA_BUCKET.put(finalR2Key, combined.buffer, {
-    httpMetadata: {
-      contentType: "audio/mpeg",
-    },
+    httpMetadata: { contentType: "audio/mpeg" },
   });
 
-  console.log(`[Assembler] Published: ${finalR2Key} (${(totalSize / 1024).toFixed(0)}KB)`);
+  console.log(`[Assembler] Published: manifest + concat (${(concatSize / 1024).toFixed(0)}KB)`);
 
-  return { finalR2Key, totalSize };
+  return { finalR2Key, totalSize: concatSize, actDurations };
 }
 
 export function generateTranscript(
