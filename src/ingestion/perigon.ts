@@ -96,13 +96,9 @@ function slugify(text: string): string {
 export async function ingestFromPerigon(env: Env): Promise<RawStory[]> {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
+  // Single combined query to conserve Perigon API quota (150 req/month free tier)
   const queries = [
-    // Milwaukee local news
-    { q: "Milwaukee", sortBy: "date", size: 20, from: yesterday, showReprints: "false", city: "Milwaukee" },
-    // Wisconsin state news
-    { q: "Wisconsin", sortBy: "date", size: 15, from: yesterday, showReprints: "false", state: "Wisconsin" },
-    // Wisconsin politics specifically
-    { q: "Wisconsin", sortBy: "date", size: 10, from: yesterday, showReprints: "false", category: "Politics", state: "Wisconsin" },
+    { q: "Milwaukee Wisconsin", sortBy: "date", size: 30, from: yesterday, showReprints: "false" },
   ];
 
   const allStories: RawStory[] = [];

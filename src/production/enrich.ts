@@ -18,9 +18,9 @@ export async function enrichStories(env: Env): Promise<{ enriched: number; error
   const result = await env.DB.prepare(
     `SELECT id, headline, summary, body, topic, source, source_url
      FROM stories
-     WHERE body IS NULL OR body = ''
+     WHERE (body IS NULL OR body = '' OR length(body) < 50)
      ORDER BY created_at DESC
-     LIMIT 15`
+     LIMIT 30`
   ).all();
 
   const stories = (result.results ?? []) as unknown as StoryRow[];

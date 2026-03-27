@@ -21,17 +21,20 @@ app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromCongress } = await import("./ingestion/congress");
   const { ingestFromFRED } = await import("./ingestion/fred");
   const { ingestFromOpenStates } = await import("./ingestion/openstates");
-  const { ingestFromPerplexity } = await import("./ingestion/perplexity");
+  const { ingestFromPerplexity, discoverNewsViaPerplexity } = await import("./ingestion/perplexity");
   const { triageStories } = await import("./production/triage");
   const { embedStories } = await import("./vectorize/embeddings");
   const { enrichStories } = await import("./production/enrich");
+  const { rewriteBillHeadlines } = await import("./production/rewrite-headlines");
 
   // Phase 1: Ingest from all data sources in parallel
+  // Perplexity news discovery runs alongside Perigon as backup/supplement
   const results = await Promise.allSettled([
     ingestFromPerigon(c.env),
     ingestFromCongress(c.env),
     ingestFromFRED(c.env),
     ingestFromOpenStates(c.env),
+    discoverNewsViaPerplexity(c.env),
   ]);
 
   const allStories: any[] = [];
@@ -68,7 +71,15 @@ app.post("/api/trigger/ingest", async (c) => {
     errors.push(`Enrich: ${String(error)}`);
   }
 
-  // Phase 5: Editorial synthesis via Perplexity (uses triaged stories)
+  // Phase 5: Rewrite bill headlines into plain language
+  let headlinesRewritten = 0;
+  try {
+    headlinesRewritten = await rewriteBillHeadlines(c.env);
+  } catch (error) {
+    errors.push(`Headlines: ${String(error)}`);
+  }
+
+  // Phase 6: Editorial synthesis via Perplexity (uses triaged stories)
   let briefing: string | null = null;
   try {
     const editorial = await ingestFromPerplexity(c.env, triagedStories);
@@ -85,6 +96,7 @@ app.post("/api/trigger/ingest", async (c) => {
     storiesTriaged: triagedStories.length,
     highRelevance,
     storiesEnriched: enrichResult.enriched,
+    headlinesRewritten,
     briefingLength: briefing?.length ?? 0,
     topStory: triagedStories.length > 0 ? {
       headline: triagedStories[0].headline,
