@@ -121,16 +121,32 @@ export async function generateActDialogue(
   actIndex: number,
   env: Env
 ): Promise<DialogueTurn[]> {
+  // Map internal source names to broadcast-friendly names
+  const sourceNames: Record<string, string> = {
+    perigon: "as reported by local news outlets",
+    congress: "according to Congress dot gov",
+    openstates: "from the Wisconsin State Legislature",
+    fred: "according to Federal Reserve economic data",
+    perplexity: "based on multiple news sources",
+  };
+
   const storyList = act.stories
-    .map((s, i) => `${i + 1}. ${s.headline}\n   Summary: ${s.summary?.slice(0, 300) ?? "No summary"}\n   Topic: ${s.topic} | Source: ${s.source}`)
+    .map((s, i) => {
+      const sourceName = sourceNames[s.source] ?? s.source;
+      const imageAttrib = (s as any).image_attribution;
+      const realSource = imageAttrib && imageAttrib !== "Congress.gov" && imageAttrib !== "OpenStates" && imageAttrib !== "FRED"
+        ? `Originally reported by: ${imageAttrib}`
+        : sourceName;
+      return `${i + 1}. ${s.headline}\n   Summary: ${s.summary?.slice(0, 300) ?? "No summary"}\n   Topic: ${s.topic}\n   Source to cite: ${realSource}`;
+    })
     .join("\n\n");
 
-  const voiceGuide = `Three speakers:
-- ANCHOR: Warm, authoritative. Frames stories, asks questions, handles transitions and sign-offs.
-- CORRESPONDENT: Detailed, explanatory. Leads research and analysis.
-- DISTRICT_DESK: Direct, data-driven. Covers floor activity, voting records, and economic data.
+  const voiceGuide = `Three speakers with names:
+- ANCHOR: Named "Sarah". Warm, authoritative host. Frames stories, asks questions, handles transitions and sign-offs. Opens the show with "I'm Sarah, and this is The Listening Post."
+- CORRESPONDENT: Named "Marcus". Detailed, explanatory correspondent. Leads research and analysis. Introduced in the cold open: "I'm joined by our correspondent Marcus..."
+- DISTRICT_DESK: Named "Kesha". Direct, data-driven reporter. Covers floor activity, voting records, and economic data. Introduced when she first speaks: "Let's go to Kesha at the capitol..."
 
-Use all three speakers. Each speaker must have a distinct role in the conversation.`;
+Use all three speakers by name. They should refer to each other naturally: "Sarah", "Marcus", "Kesha". This makes it feel like a real broadcast team, not anonymous voices.`;
 
   const formatGuide = `Format each line EXACTLY as:
 SPEAKER: Dialogue text here.
@@ -154,37 +170,38 @@ IMPORTANT RULES:
   if (edition === "morning") {
     if (actIndex === 0) {
       actPrompt = `This is ACT 1: THE BRIEFING for the Morning Edition.
-Start with a punchy cold open hook from the biggest story — one compelling line from the anchor.
-Then cover 3-4 top headlines with the anchor leading. The correspondent adds color on the lead story.
-End with a natural transition to the deep dive.
-Target: 2000-2500 characters total across all speakers.`;
+Start with Sarah introducing the show: "Good morning, I'm Sarah, and this is The Listening Post — your Milwaukee morning briefing. I'm joined by our correspondent Marcus and our capitol reporter Kesha."
+Then Sarah hooks the biggest story with one compelling line.
+Cover 3-4 top headlines with Sarah leading. Marcus adds color on the lead story. Kesha jumps in on any legislative news.
+End with Sarah transitioning to the deep dive: "Marcus, take us deeper on this one."
+Target: 4000-4500 characters total across all speakers. This should produce about three to four minutes of audio. Write a full, substantive segment — not a summary.`;
     } else if (actIndex === 1) {
       actPrompt = `This is ACT 2: THE DEEP DIVE for the Morning Edition.
 The correspondent leads an in-depth exploration of the top story. The anchor asks questions.
 The district desk enters to cover today's floor activity and any bills at the president's desk.
-Target: 2500-3000 characters total.`;
+Target: 4000-4500 characters total. This should produce about three to four minutes of audio. Write a full, substantive deep dive — not a summary.`;
     } else {
       actPrompt = `This is ACT 3: THE OUTLOOK for the Morning Edition.
 The correspondent covers what to watch this week — upcoming hearings, votes, deadlines.
 The anchor wraps up and teases the evening edition.
-Target: 1500-2000 characters total.`;
+Target: 3000-4000 characters total. This should produce about three minutes of audio. Write substantive content — not a quick wrap.`;
     }
   } else {
     if (actIndex === 0) {
       actPrompt = `This is ACT 1: DAY IN REVIEW for the Evening Edition.
-The anchor leads with today's biggest outcome. Review what passed, failed, or moved today.
-The correspondent adds context on the most significant development.
-Target: 2000-2500 characters total.`;
+Start with Sarah: "Good evening, I'm Sarah, and this is The Listening Post evening edition. Marcus and Kesha are here with me."
+Sarah leads with today's biggest outcome. Marcus adds context. Kesha covers what happened on the floor.
+Target: 4000-4500 characters total. This should produce about three to four minutes of audio.`;
     } else if (actIndex === 1) {
       actPrompt = `This is ACT 2: ANALYSIS for the Evening Edition.
 The correspondent leads with "why today matters" analysis. The anchor asks probing questions.
 The district desk covers how reps voted today. Include economic data context.
-Target: 2500-3500 characters total.`;
+Target: 4000-4500 characters total. This should produce about three to four minutes of audio.`;
     } else {
       actPrompt = `This is ACT 3: THE SIGNAL for the Evening Edition.
 The correspondent identifies one long-term trend most people aren't watching.
 The anchor wraps up genuinely, previews tomorrow's morning edition.
-Target: 2000-2500 characters total.`;
+Target: 4000-4500 characters total. This should produce about three to four minutes of audio.`;
     }
   }
 

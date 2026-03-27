@@ -85,9 +85,8 @@ export async function voiceAct(
 
   const audioBuffer = await response.arrayBuffer();
 
-  // Estimate duration: ~150 words per minute, ~5 chars per word
-  const estimatedWords = totalChars / 5;
-  const durationEstimate = Math.round((estimatedWords / 150) * 60);
+  // Estimate duration from actual audio size: ~16KB per second for 128kbps MP3
+  const durationEstimate = Math.round(audioBuffer.byteLength / (128 * 1024 / 8));
 
   console.log(`[Voices] Act ${actId}: ${(audioBuffer.byteLength / 1024).toFixed(0)}KB audio, ~${durationEstimate}s estimated`);
 
