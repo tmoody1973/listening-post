@@ -2,7 +2,7 @@ import type { Env } from "../types";
 import { GoogleGenAI } from "@google/genai";
 
 function buildImagePrompt(headline: string): string {
-  return `A wide cinematic editorial illustration in the style of New Yorker magazine. Stylized flat design with thick outlines, muted color palette of dusty blues, warm yellows, soft pinks, and deep purples. [${headline}]. Set against a dark atmospheric background. Subtle grain texture overlay, analog print feel, slight paper texture. Bold, confident linework. Modern editorial flat illustration, web feature header format, 16:9 widescreen composition, grain texture, risograph print aesthetic. ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO CAPTIONS, NO TITLES, NO LABELS, NO WATERMARKS anywhere on the image. Pure illustration only.`;
+  return `Abstract editorial illustration, muted dusty blues, warm yellows, soft pinks, deep purples. Visual metaphor for: ${headline}. Dark atmospheric background, silhouette shapes, geometric forms. Risograph print texture, grain overlay, bold flat shapes. Completely wordless, completely textless, purely visual, no typography, no signage, no writing. 16:9 widescreen.`;
 }
 
 async function generateWithGemini(env: Env, headline: string): Promise<ArrayBuffer | null> {
@@ -73,7 +73,7 @@ async function generateWithFlux(env: Env, headline: string): Promise<ArrayBuffer
   try {
     const result = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
       prompt,
-      num_steps: 4,
+      num_steps: 8,
     });
 
     if (result instanceof ReadableStream) {
