@@ -86,9 +86,172 @@ app.post("/api/trigger/ingest", async (c) => {
 });
 
 app.post("/api/trigger/produce", async (c) => {
-  const edition = c.req.query("edition") ?? "morning";
-  // TODO: Wire up episode production (Day 3)
-  return c.json({ status: `${edition} production not yet implemented` });
+  const edition = (c.req.query("edition") ?? "morning") as "morning" | "evening";
+  const { buildShowRundown, generateActDialogue } = await import("./production/scriptwriter");
+  const { voiceAct, voiceActFallbackTTS } = await import("./production/voices");
+  const { assembleEpisode, generateTranscript } = await import("./production/assembler");
+
+  const today = new Date().toISOString().split("T")[0];
+  const episodeId = `${edition}-${today}`;
+
+  console.log(`[Produce] Starting ${edition} episode: ${episodeId}`);
+
+  // Step 1: Get recent stories from D1 (prefer scored, fall back to recent)
+  let storiesResult = await c.env.DB.prepare(
+    `SELECT * FROM stories WHERE relevance_score IS NOT NULL ORDER BY relevance_score DESC LIMIT 10`
+  ).all();
+
+  // Fallback: if no scored stories, grab the most recent ones
+  if ((storiesResult.results ?? []).length === 0) {
+    storiesResult = await c.env.DB.prepare(
+      `SELECT * FROM stories ORDER BY created_at DESC LIMIT 10`
+    ).all();
+  }
+
+  const stories = (storiesResult.results ?? []).map((s: any) => ({
+    ...s,
+    relevance_score: s.relevance_score ?? 0.3,
+    research_package: null,
+  }));
+
+  if (stories.length === 0) {
+    return c.json({ error: "No triaged stories available. Run /api/trigger/ingest first." }, 400);
+  }
+
+  // Step 2: Build show rundown
+  console.log(`[Produce] Building rundown with ${stories.length} stories...`);
+  const rundown = await buildShowRundown(edition, stories as any, c.env);
+
+  // Step 3: Generate dialogue scripts for each act
+  const acts: any[] = [];
+  for (let i = 0; i < rundown.acts.length; i++) {
+    const act = rundown.acts[i];
+    console.log(`[Produce] Scripting ${act.title}...`);
+    const dialogue = await generateActDialogue(act, edition, i, c.env);
+    acts.push({
+      id: act.id,
+      title: act.title,
+      dialogue,
+      audioR2Key: null,
+      durationSeconds: null,
+      status: dialogue.length > 0 ? "scripted" : "failed",
+    });
+  }
+
+  // Step 4: Voice each act via ElevenLabs Text to Dialogue
+  const actAudioKeys: string[] = [];
+  for (const act of acts) {
+    if (act.status !== "scripted" || act.dialogue.length === 0) {
+      console.log(`[Produce] Skipping ${act.title} — no dialogue`);
+      continue;
+    }
+
+    console.log(`[Produce] Voicing ${act.title} (${act.dialogue.length} turns)...`);
+
+    try {
+      // Try Text to Dialogue (v3) first
+      const { audioBuffer, durationEstimate } = await voiceAct(
+        c.env, act.dialogue, episodeId, act.id
+      );
+
+      const r2Key = `audio/${episodeId}/${act.id}.mp3`;
+      await c.env.MEDIA_BUCKET.put(r2Key, audioBuffer, {
+        httpMetadata: { contentType: "audio/mpeg" },
+      });
+
+      act.audioR2Key = r2Key;
+      act.durationSeconds = durationEstimate;
+      act.status = "voiced";
+      actAudioKeys.push(r2Key);
+    } catch (error) {
+      console.error(`[Produce] Text to Dialogue failed for ${act.title}:`, error);
+
+      // Fallback to standard TTS
+      try {
+        console.log(`[Produce] Trying fallback TTS for ${act.title}...`);
+        const { audioBuffer, durationEstimate } = await voiceActFallbackTTS(
+          c.env, act.dialogue, episodeId, act.id
+        );
+
+        const r2Key = `audio/${episodeId}/${act.id}.mp3`;
+        await c.env.MEDIA_BUCKET.put(r2Key, audioBuffer, {
+          httpMetadata: { contentType: "audio/mpeg" },
+        });
+
+        act.audioR2Key = r2Key;
+        act.durationSeconds = durationEstimate;
+        act.status = "voiced";
+        actAudioKeys.push(r2Key);
+      } catch (fallbackError) {
+        console.error(`[Produce] Fallback TTS also failed for ${act.title}:`, fallbackError);
+        act.status = "failed";
+      }
+    }
+  }
+
+  // Step 5: Assemble final episode
+  let finalR2Key: string | null = null;
+  let totalDuration = 0;
+
+  if (actAudioKeys.length > 0) {
+    try {
+      const assembled = await assembleEpisode(c.env, episodeId, actAudioKeys);
+      finalR2Key = assembled.finalR2Key;
+      totalDuration = acts.reduce((sum: number, a: any) => sum + (a.durationSeconds ?? 0), 0);
+    } catch (error) {
+      console.error("[Produce] Assembly failed:", error);
+    }
+  }
+
+  // Step 6: Generate transcript
+  const transcript = generateTranscript(acts);
+
+  // Step 7: Write episode to D1
+  const storyIds = stories.map((s: any) => s.id);
+  try {
+    await c.env.DB.prepare(
+      `INSERT OR REPLACE INTO episodes (id, edition, date, status, audio_r2_key, transcript, duration_seconds, segment_count, segments_json, story_ids_json, published_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).bind(
+      episodeId,
+      edition,
+      today,
+      finalR2Key ? "published" : "failed",
+      finalR2Key,
+      transcript,
+      totalDuration,
+      acts.length,
+      JSON.stringify(acts.map((a: any) => ({ id: a.id, title: a.title, duration: a.durationSeconds, r2Key: a.audioR2Key }))),
+      JSON.stringify(storyIds),
+    ).run();
+
+    // Mark stories as published with this episode
+    for (const id of storyIds) {
+      await c.env.DB.prepare(
+        `UPDATE stories SET episode_id = ?, edition = ?, published_at = datetime('now') WHERE id = ?`
+      ).bind(episodeId, edition, id).run();
+    }
+  } catch (error) {
+    console.error("[Produce] D1 write failed:", error);
+  }
+
+  console.log(`[Produce] ${episodeId} complete. Status: ${finalR2Key ? "published" : "failed"}`);
+
+  return c.json({
+    status: finalR2Key ? "published" : "partial",
+    episodeId,
+    edition,
+    acts: acts.map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      turns: a.dialogue?.length ?? 0,
+      duration: a.durationSeconds,
+      status: a.status,
+    })),
+    finalAudioUrl: finalR2Key ? `/audio/${episodeId}/final.mp3` : null,
+    totalDuration,
+    storiesUsed: stories.length,
+  });
 });
 
 // ─── Public API endpoints ───────────────────────────────────

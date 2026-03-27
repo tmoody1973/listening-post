@@ -1,0 +1,273 @@
+import type { Env, TriagedStory, EpisodeAct, DialogueTurn } from "../types";
+
+const AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
+interface ShowRundown {
+  edition: "morning" | "evening";
+  acts: {
+    id: string;
+    title: string;
+    stories: TriagedStory[];
+    context: string;
+  }[];
+}
+
+export async function buildShowRundown(
+  edition: "morning" | "evening",
+  stories: TriagedStory[],
+  env: Env
+): Promise<ShowRundown> {
+  // Get top stories by relevance
+  const ranked = [...stories].sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
+  const top = ranked.slice(0, 8);
+
+  // Get editorial briefing from KV
+  const briefingRaw = await env.CONFIG_KV.get("editorial:latest-briefing", "json") as {
+    briefing?: string;
+    topStoryResearch?: string;
+  } | null;
+
+  const briefing = briefingRaw?.briefing ?? "";
+  const research = briefingRaw?.topStoryResearch ?? "";
+
+  // Get floor actions for today
+  const today = new Date().toISOString().split("T")[0];
+  const floorResult = await env.DB.prepare(
+    "SELECT * FROM floor_actions WHERE date = ? ORDER BY chamber, created_at DESC LIMIT 10"
+  ).bind(today).all();
+  const floorActions = floorResult.results ?? [];
+
+  // Get presidential actions
+  const presResult = await env.DB.prepare(
+    "SELECT * FROM presidential_actions ORDER BY created_at DESC LIMIT 5"
+  ).all();
+  const presidentialActions = presResult.results ?? [];
+
+  // Get FRED context for top story's topic
+  const topTopic = top[0]?.topic ?? "economy";
+  const fredRaw = await env.CONFIG_KV.get(`fred:${topTopic === "housing" ? "ATNHPIUS33340Q" : "MILK555URN"}`, "json") as {
+    title?: string;
+    latestValue?: number;
+    units?: string;
+    changePercent?: number;
+  } | null;
+
+  const fredContext = fredRaw
+    ? `${fredRaw.title}: ${fredRaw.latestValue} ${fredRaw.units} (${fredRaw.changePercent && fredRaw.changePercent > 0 ? "+" : ""}${fredRaw.changePercent?.toFixed(1)}%)`
+    : "";
+
+  const floorContext = floorActions.length > 0
+    ? `Floor activity today:\n${floorActions.map((a: any) => `- ${a.chamber}: ${a.description}`).join("\n")}`
+    : "No floor actions today.";
+
+  const presContext = presidentialActions.length > 0
+    ? `At the president's desk:\n${presidentialActions.map((a: any) => `- ${a.bill_identifier}: ${a.title} (${a.status})`).join("\n")}`
+    : "";
+
+  if (edition === "morning") {
+    return {
+      edition,
+      acts: [
+        {
+          id: "act-1",
+          title: "The Briefing",
+          stories: top.slice(0, 4),
+          context: `Editorial briefing:\n${briefing}\n\n${fredContext}`,
+        },
+        {
+          id: "act-2",
+          title: "The Deep Dive",
+          stories: top.slice(0, 2),
+          context: `Deep research:\n${research}\n\n${floorContext}\n\n${presContext}`,
+        },
+        {
+          id: "act-3",
+          title: "The Outlook",
+          stories: top.slice(4, 7),
+          context: `${fredContext}\n\nUpcoming: look for developments on these stories this week.`,
+        },
+      ],
+    };
+  }
+
+  return {
+    edition,
+    acts: [
+      {
+        id: "act-1",
+        title: "Day in Review",
+        stories: top.slice(0, 4),
+        context: `Editorial briefing:\n${briefing}\n\n${floorContext}`,
+      },
+      {
+        id: "act-2",
+        title: "Analysis",
+        stories: top.slice(0, 3),
+        context: `Deep research:\n${research}\n\n${fredContext}\n\n${presContext}`,
+      },
+      {
+        id: "act-3",
+        title: "The Signal",
+        stories: top.slice(3, 6),
+        context: `${fredContext}\n\nLong-term trends to watch.`,
+      },
+    ],
+  };
+}
+
+export async function generateActDialogue(
+  act: ShowRundown["acts"][0],
+  edition: "morning" | "evening",
+  actIndex: number,
+  env: Env
+): Promise<DialogueTurn[]> {
+  const storyList = act.stories
+    .map((s, i) => `${i + 1}. ${s.headline}\n   Summary: ${s.summary?.slice(0, 300) ?? "No summary"}\n   Topic: ${s.topic} | Source: ${s.source}`)
+    .join("\n\n");
+
+  const voiceGuide = `Three speakers:
+- ANCHOR: Warm, authoritative. Frames stories, asks questions, handles transitions. Voice ID will be assigned.
+- CORRESPONDENT: Detailed, explanatory. Leads research and analysis. Voice ID will be assigned.
+- DISTRICT_DESK: Direct, data-driven. Covers floor activity and voting records. Voice ID will be assigned.`;
+
+  const formatGuide = `Format each line EXACTLY as:
+SPEAKER: [audio_tag] Dialogue text here.
+
+Valid speakers: ANCHOR, CORRESPONDENT, DISTRICT_DESK
+Valid audio tags: [confidently] [curious] [analytical] [serious] [thoughtful] [jumping in] [wrapping up] [direct] [genuine]
+
+Use dashes for interruptions: "So what you're saying is—"
+Use ellipses for trailing: "And that means..."
+
+Write numbers spelled out: "one hundred ninety-eight thousand dollars" not "$198,000"
+Write dates spelled out: "March twenty-sixth" not "March 26"`;
+
+  let actPrompt = "";
+
+  if (edition === "morning") {
+    if (actIndex === 0) {
+      actPrompt = `This is ACT 1: THE BRIEFING for the Morning Edition.
+Start with a punchy cold open hook from the biggest story — one compelling line from the anchor.
+Then cover 3-4 top headlines with the anchor leading. The correspondent adds color on the lead story.
+End with a natural transition to the deep dive.
+Target: 2000-2500 characters total across all speakers.`;
+    } else if (actIndex === 1) {
+      actPrompt = `This is ACT 2: THE DEEP DIVE for the Morning Edition.
+The correspondent leads an in-depth exploration of the top story. The anchor asks questions.
+The district desk enters to cover today's floor activity and any bills at the president's desk.
+Target: 2500-3000 characters total.`;
+    } else {
+      actPrompt = `This is ACT 3: THE OUTLOOK for the Morning Edition.
+The correspondent covers what to watch this week — upcoming hearings, votes, deadlines.
+The anchor wraps up and teases the evening edition.
+Target: 1500-2000 characters total.`;
+    }
+  } else {
+    if (actIndex === 0) {
+      actPrompt = `This is ACT 1: DAY IN REVIEW for the Evening Edition.
+The anchor leads with today's biggest outcome. Review what passed, failed, or moved today.
+The correspondent adds context on the most significant development.
+Target: 2000-2500 characters total.`;
+    } else if (actIndex === 1) {
+      actPrompt = `This is ACT 2: ANALYSIS for the Evening Edition.
+The correspondent leads with "why today matters" analysis. The anchor asks probing questions.
+The district desk covers how reps voted today. Include economic data context.
+Target: 2500-3500 characters total.`;
+    } else {
+      actPrompt = `This is ACT 3: THE SIGNAL for the Evening Edition.
+The correspondent identifies one long-term trend most people aren't watching.
+The anchor wraps up genuinely, previews tomorrow's morning edition.
+Target: 2000-2500 characters total.`;
+    }
+  }
+
+  const prompt = `${voiceGuide}
+
+${formatGuide}
+
+${actPrompt}
+
+STORIES FOR THIS ACT:
+${storyList}
+
+ADDITIONAL CONTEXT:
+${act.context}
+
+Write the dialogue script now. Remember: write for the EAR, not the eye. Short sentences. No jargon. Cite sources naturally in speech. Make the conversation feel natural — not alternating monologues.`;
+
+  try {
+    const result = await env.AI.run(AI_MODEL, {
+      messages: [
+        {
+          role: "system",
+          content: "You are a broadcast script writer for a Milwaukee local news podcast. Write natural, engaging dialogue between three hosts. Follow the format exactly. Do not include stage directions, only speaker lines with audio tags.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 4000,
+      temperature: 0.4,
+    }) as { response?: string };
+
+    const script = result.response ?? "";
+    return parseDialogueScript(script);
+  } catch (error) {
+    console.error(`[Scriptwriter] Act ${act.id} failed:`, error);
+    return getFallbackDialogue(act, edition, actIndex);
+  }
+}
+
+function parseDialogueScript(script: string): DialogueTurn[] {
+  const lines = script.split("\n").filter((l) => l.trim().length > 0);
+  const turns: DialogueTurn[] = [];
+
+  const speakerMap: Record<string, DialogueTurn["voice"]> = {
+    "ANCHOR": "anchor",
+    "CORRESPONDENT": "correspondent",
+    "DISTRICT_DESK": "district_desk",
+    "DISTRICT DESK": "district_desk",
+  };
+
+  for (const line of lines) {
+    // Match patterns like "ANCHOR: [confidently] text here"
+    const match = line.match(/^(ANCHOR|CORRESPONDENT|DISTRICT[_ ]DESK)\s*:\s*(.+)$/i);
+    if (!match) continue;
+
+    const speaker = match[1].toUpperCase().replace(" ", "_");
+    const voice = speakerMap[speaker];
+    if (!voice) continue;
+
+    const text = match[2].trim();
+    if (text.length === 0) continue;
+
+    turns.push({
+      voice,
+      voiceId: "", // Will be assigned when sending to ElevenLabs
+      text,
+    });
+  }
+
+  if (turns.length === 0) {
+    console.error("[Scriptwriter] No dialogue turns parsed from script");
+  }
+
+  return turns;
+}
+
+function getFallbackDialogue(
+  act: ShowRundown["acts"][0],
+  edition: "morning" | "evening",
+  actIndex: number
+): DialogueTurn[] {
+  const topStory = act.stories[0];
+  if (!topStory) {
+    return [
+      { voice: "anchor", voiceId: "", text: `[confidently] Welcome to The Listening Post ${edition} edition. We're tracking developments in Milwaukee today.` },
+    ];
+  }
+
+  return [
+    { voice: "anchor", voiceId: "", text: `[confidently] ${actIndex === 0 ? "Good morning, Milwaukee." : ""} Our top story: ${topStory.headline}.` },
+    { voice: "correspondent", voiceId: "", text: `[analytical] ${topStory.summary?.slice(0, 300) ?? "We're following this developing story."}` },
+    { voice: "anchor", voiceId: "", text: `[genuine] We'll continue to follow this story. ${actIndex === 2 ? `That's your ${edition} edition from The Listening Post.` : ""}` },
+  ];
+}
