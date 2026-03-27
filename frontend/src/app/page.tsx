@@ -127,7 +127,7 @@ export default async function HomePage() {
         {/* Column 1: Congressional Record & Presidential Actions */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-6 pb-3 border-b border-white/10">
-            Congressional Record & President
+            <a href="/bills/house" className="hover:text-foreground transition-colors">Congressional Record & President</a>
           </h3>
           <div className="space-y-5">
             {congressionalRecord.slice(0, 5).map((rec: any) => (
@@ -183,7 +183,7 @@ export default async function HomePage() {
         {/* Column 2: House & Senate Bills */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-6 pb-3 border-b border-white/10">
-            House & Senate Bills
+            <a href="/bills/house" className="hover:text-foreground transition-colors">House & Senate Bills →</a>
           </h3>
           <div className="space-y-5">
             {federalBills.slice(0, 6).map((bill: any) => (
@@ -214,7 +214,7 @@ export default async function HomePage() {
         {/* Column 3: Wisconsin State Legislature */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-6 pb-3 border-b border-white/10">
-            Wisconsin State Legislature
+            <a href="/bills/wisconsin" className="hover:text-foreground transition-colors">Wisconsin State Legislature →</a>
           </h3>
           <div className="space-y-5">
             {stateBills.slice(0, 6).map((bill: any) => (

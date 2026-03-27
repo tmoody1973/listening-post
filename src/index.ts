@@ -384,6 +384,19 @@ app.get("/api/topic/:topic", async (c) => {
   });
 });
 
+// Bills by chamber
+app.get("/api/bills/:chamber", async (c) => {
+  const chamber = c.req.param("chamber");
+  let source = "congress";
+  if (chamber === "wisconsin") source = "openstates";
+
+  const result = await c.env.DB.prepare(
+    "SELECT * FROM bills WHERE source = ? ORDER BY updated_at DESC LIMIT 50"
+  ).bind(source).all();
+
+  return c.json({ bills: result.results ?? [], chamber });
+});
+
 // Bill detail
 app.get("/api/bill/:id", async (c) => {
   const id = decodeURIComponent(c.req.param("id"));
