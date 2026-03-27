@@ -1,7 +1,12 @@
 import { fetchStories, fetchEpisodes, fetchManifest, fetchFloorData, getTopicColor, imageUrl, getSourceDisplay } from "@/lib/api";
-import { EditionPlayer } from "@/components/EditionPlayer";
 
-export const revalidate = 300;
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export const revalidate = 30;
 
 export default async function HomePage() {
   const [stories, episodes, floorData] = await Promise.all([
@@ -10,11 +15,7 @@ export default async function HomePage() {
     fetchFloorData(),
   ]);
 
-  const latestEpisode = episodes[0] ?? null;
-  let manifest = null;
-  if (latestEpisode) {
-    manifest = await fetchManifest(latestEpisode.id);
-  }
+  // Episodes used for the card grid below
 
   // Split stories
   const leadStory = stories[0] ?? null;
@@ -36,22 +37,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      {/* ─── EDITION PLAYER (Hero) ─────────────────────────── */}
-      <section className="mb-8">
-        {latestEpisode && manifest?.playlist ? (
-          <EditionPlayer
-            episodeId={latestEpisode.id}
-            edition={latestEpisode.edition}
-            date={latestEpisode.date}
-            playlist={manifest.playlist}
-            totalDuration={manifest.totalDurationSeconds}
-          />
-        ) : (
-          <div className="border border-white/10 p-6 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Next edition coming soon
-          </div>
-        )}
-      </section>
+      {/* Player is now sticky in the layout — no inline player needed */}
 
       {/* ─── TODAY'S NEWS ──────────────────────────────────── */}
       <div className="h-px bg-white/20 mb-6" />
@@ -287,20 +273,48 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* ─── PODCAST (Section C repeat) ────────────────────── */}
+      {/* ─── LATEST EPISODES (Marketplace-style cards) ────── */}
       <div className="h-px bg-white/20 mb-6" />
-      <h2 className="text-2xl font-black uppercase tracking-tight mb-6">Latest Podcast</h2>
-      {latestEpisode && manifest?.playlist ? (
-        <div className="mb-10">
-          <EditionPlayer
-            episodeId={latestEpisode.id}
-            edition={latestEpisode.edition}
-            date={latestEpisode.date}
-            playlist={manifest.playlist}
-            totalDuration={manifest.totalDurationSeconds}
-          />
-        </div>
-      ) : null}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-black uppercase tracking-tight">Latest Episodes</h2>
+        <a href="/podcast" className="text-xs uppercase tracking-[0.15em] text-[var(--color-coral)] hover:underline">
+          View All Episodes
+        </a>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {episodes.map((ep: any) => {
+          const edLabel = ep.edition === "morning" ? "Morning Edition" : "Evening Edition";
+          const dur = ep.duration_seconds ? formatTime(ep.duration_seconds) : "~9:00";
+          const dateStr = new Date(ep.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          return (
+            <a
+              key={ep.id}
+              href="/podcast"
+              className="border border-white/10 p-5 flex items-center gap-4 hover:border-[var(--color-coral)]/50 transition-colors group"
+            >
+              <div
+                className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center shrink-0 group-hover:border-[var(--color-coral)] transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black uppercase tracking-tight">{edLabel}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-muted-foreground">{dateStr}</span>
+                  <span className="text-xs text-muted-foreground">{dur}</span>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+        {episodes.length === 0 && (
+          <div className="border border-white/10 p-5 text-sm text-muted-foreground col-span-3 text-center">
+            Episodes coming soon
+          </div>
+        )}
+      </div>
 
       {/* ─── TOPIC SECTIONS ────────────────────────────────── */}
       <div className="h-px bg-white/20 mb-8" />

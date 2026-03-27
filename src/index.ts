@@ -9,6 +9,18 @@ export { NewsroomAgent, EpisodeAgent };
 
 const app = new Hono<{ Bindings: Env }>();
 
+// CORS — allow frontend to fetch from backend
+app.use("*", async (c, next) => {
+  await next();
+  c.header("Access-Control-Allow-Origin", "*");
+  c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+});
+
+app.options("*", (c) => {
+  return new Response(null, { status: 204 });
+});
+
 // ─── Agent routing (WebSocket + HTTP to agents) ─────────────
 app.all("/agents/*", async (c) => {
   const response = await routeAgentRequest(c.req.raw, c.env);

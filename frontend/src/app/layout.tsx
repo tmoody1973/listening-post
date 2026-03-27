@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
 import { AgentationDev } from "@/components/AgentationDev";
+import { PlayerBar } from "@/components/PlayerBar";
 
 const barlow = Barlow_Condensed({
   variable: "--font-barlow",
@@ -92,6 +93,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
+        <PlayerBar />
         <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
           {children}
         </main>

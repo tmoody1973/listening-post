@@ -15,7 +15,7 @@ export async function fetchEpisodes(options?: { edition?: string }) {
   const params = new URLSearchParams();
   if (options?.edition) params.set("edition", options.edition);
 
-  const res = await fetch(`${API_BASE}/api/episodes?${params}`, { next: { revalidate: 300 } });
+  const res = await fetch(`${API_BASE}/api/episodes?${params}`, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json();
   return data.episodes ?? [];
@@ -41,7 +41,7 @@ export async function fetchFredData(topic: string) {
 }
 
 export async function fetchManifest(episodeId: string) {
-  const res = await fetch(`${API_BASE}/api/episode/${episodeId}/manifest`, { next: { revalidate: 60 } });
+  const res = await fetch(`${API_BASE}/api/episode/${episodeId}/manifest`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }

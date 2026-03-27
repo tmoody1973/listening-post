@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { audioUrl } from "@/lib/api";
 
 interface PlaylistItem {
@@ -35,9 +33,15 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
   const [duration, setDuration] = useState(0);
 
   const currentItem = playlist[currentIndex];
-  const actsOnly = playlist.filter((p) => p.type === "act");
+  const currentAct = playlist.filter((p) => p.type === "act").find((_, i) => {
+    const actIndex = playlist.findIndex((p, pi) => p.type === "act" && playlist.filter((x, xi) => xi <= pi && x.type === "act").length === i + 1);
+    return currentIndex >= actIndex;
+  });
 
-  // Calculate elapsed time across all previous items
+  // Get current act name
+  const actName = currentItem?.type === "act" ? currentItem.title :
+    currentItem?.type === "music" ? (currentItem.title === "Intro" ? "Intro" : currentItem.title === "Outro" ? "Outro" : "Transition") : "";
+
   const elapsedBefore = playlist
     .slice(0, currentIndex)
     .reduce((sum, p) => sum + p.durationSeconds, 0);
@@ -67,7 +71,6 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
     };
   }, [currentIndex, playlist.length]);
 
-  // Auto-play next item when index changes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentItem) return;
@@ -92,13 +95,45 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
     }
   };
 
-  const jumpToAct = (actIndex: number) => {
-    const playlistIndex = playlist.findIndex(
-      (p) => p.type === "act" && playlist.filter((x) => x.type === "act").indexOf(p) === actIndex
-    );
-    if (playlistIndex >= 0) {
-      setCurrentIndex(playlistIndex);
-      setIsPlaying(true);
+  const skipBack = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.currentTime > 5) {
+      audio.currentTime -= 15;
+    } else if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const skipForward = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.currentTime + 15 < (audio.duration || 0)) {
+      audio.currentTime += 15;
+    } else if (currentIndex < playlist.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const targetTime = percent * totalDuration;
+
+    // Find which playlist item this falls into
+    let accumulated = 0;
+    for (let i = 0; i < playlist.length; i++) {
+      if (accumulated + playlist[i].durationSeconds > targetTime) {
+        setCurrentIndex(i);
+        const audio = audioRef.current;
+        if (audio) {
+          setTimeout(() => {
+            audio.currentTime = targetTime - accumulated;
+          }, 100);
+        }
+        break;
+      }
+      accumulated += playlist[i].durationSeconds;
     }
   };
 
@@ -106,87 +141,98 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
   const progressPercent = totalDuration > 0 ? (totalElapsed / totalDuration) * 100 : 0;
 
   const editionLabel = edition === "morning" ? "Morning Edition" : "Evening Edition";
-  const formattedDate = new Date(date + "T12:00:00").toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
 
   return (
-    <Card className="p-6 bg-muted/50">
+    <div className="bg-zinc-900 border-b border-white/10">
       <audio ref={audioRef} preload="auto" />
 
-      <div className="flex items-center gap-3 mb-3">
-        <Badge
-          className="text-white text-xs font-medium px-2.5 py-0.5"
-          style={{ backgroundColor: "var(--color-coral)" }}
-        >
-          {editionLabel}
-        </Badge>
-        <span className="text-sm text-muted-foreground">{formattedDate}</span>
-      </div>
-
-      <div className="flex items-center gap-4 mb-4">
-        <button
-          onClick={togglePlay}
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "var(--color-coral)" }}
-        >
-          {isPlaying ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+        {/* Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Skip back 15s */}
+          <button
+            onClick={skipBack}
+            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5V1L7 6l5 5V7a6 6 0 016 6 6 6 0 01-6 6 6 6 0 01-6-6H4a8 8 0 008 8 8 8 0 008-8 8 8 0 00-8-8z" />
+              <text x="9" y="16" fontSize="7" fill="currentColor" stroke="none" fontWeight="bold">15</text>
             </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          )}
-        </button>
+          </button>
 
-        <div className="flex-1">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%`, backgroundColor: "var(--color-coral)" }}
-            />
+          {/* Play/Pause */}
+          <button
+            onClick={togglePlay}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: "var(--color-coral)" }}
+          >
+            {isPlaying ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16" />
+                <rect x="14" y="4" width="4" height="16" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+            )}
+          </button>
+
+          {/* Skip forward 15s */}
+          <button
+            onClick={skipForward}
+            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5V1l5 5-5 5V7a6 6 0 00-6 6 6 6 0 006 6 6 6 0 006-6h2a8 8 0 01-8 8 8 8 0 01-8-8 8 8 0 018-8z" />
+              <text x="9" y="16" fontSize="7" fill="currentColor" stroke="none" fontWeight="bold">15</text>
+            </svg>
+          </button>
+        </div>
+
+        {/* Title + Progress */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: "var(--color-coral)" }}>
+              {editionLabel}
+            </span>
+            {actName && actName !== "Intro" && actName !== "Outro" && actName !== "Transition" && (
+              <>
+                <span className="text-xs text-muted-foreground">◆</span>
+                <span className="text-xs text-muted-foreground truncate">{actName}</span>
+              </>
+            )}
           </div>
-          <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-            <span>{formatTime(totalElapsed)}</span>
-            <span>{formatTime(totalDuration)}</span>
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground tabular-nums w-10 shrink-0">
+              {formatTime(totalElapsed)}
+            </span>
+            <div
+              className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer group"
+              onClick={handleProgressClick}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-200 group-hover:h-2 group-hover:-mt-0.5"
+                style={{ width: `${progressPercent}%`, backgroundColor: "var(--color-coral)" }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground tabular-nums w-10 shrink-0 text-right">
+              {formatTime(totalDuration)}
+            </span>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {currentItem && currentItem.type === "act" && (
-        <p className="text-xs text-muted-foreground mb-3">
-          Now playing: {currentItem.title}
-        </p>
-      )}
-
-      <div className="flex gap-2 flex-wrap">
-        {actsOnly.map((act, i) => {
-          const isActive = currentItem?.url === act.url;
-          return (
-            <button
-              key={act.url}
-              onClick={() => jumpToAct(i)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                isActive
-                  ? "border-[var(--color-coral)] text-[var(--color-coral)] bg-[var(--color-coral)]/10"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {act.title ?? `Act ${i + 1}`}
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="text-xs text-muted-foreground mt-3">
-        {formatTime(totalDuration)} · {actsOnly.length} segments · {edition === "morning" ? "6:00 AM" : "5:00 PM"} CT
-      </p>
-    </Card>
+// Sticky wrapper for use in layouts
+export function StickyPlayer(props: EditionPlayerProps) {
+  return (
+    <div className="sticky top-0 z-50">
+      <EditionPlayer {...props} />
+    </div>
   );
 }
