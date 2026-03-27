@@ -27,6 +27,27 @@ app.all("/agents/*", async (c) => {
   return response ?? c.text("Agent not found", 404);
 });
 
+// ─── Initialize the NewsroomAgent (call once to start scheduling) ──
+app.post("/api/init", async (c) => {
+  // Route through the agent SDK pattern to properly initialize
+  const agentUrl = new URL(c.req.url);
+  agentUrl.pathname = "/agents/NewsroomAgent/main-newsroom";
+  const initReq = new Request(agentUrl.toString(), { method: "GET" });
+  const res = await routeAgentRequest(initReq, c.env);
+  if (res) {
+    return c.json({ status: "Agent initialized — cron schedules set" });
+  }
+  return c.json({ status: "Agent initialization attempted" });
+});
+
+// ─── Agent status ──
+app.get("/api/newsroom/status", async (c) => {
+  const agentUrl = new URL(c.req.url);
+  agentUrl.pathname = "/agents/NewsroomAgent/main-newsroom";
+  const res = await routeAgentRequest(new Request(agentUrl.toString()), c.env);
+  return res ?? c.json({ error: "Agent not found" }, 404);
+});
+
 // ─── Manual triggers (dev) ──────────────────────────────────
 app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromPerigon } = await import("./ingestion/perigon");
