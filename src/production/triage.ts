@@ -45,6 +45,8 @@ Topic guide:
 
 IMPORTANT: National policy stories (healthcare bills, budget debates, trade policy, infrastructure funding) are NOT skip — they affect Milwaukee residents. Business stories about companies and the economy are NOT skip.
 
+ALSO SKIP: Crime blotter stories (shootings, stabbings, car chases, arrests, homicides). These are not civic policy news. Exception: stories about policing POLICY, criminal justice REFORM, or court RULINGS are NOT skip — those are policy.
+
 Return ONLY a JSON array: [{"i":0,"r":0.85,"t":"housing","s":false},...]
 No explanation. Just the array.`,
           },

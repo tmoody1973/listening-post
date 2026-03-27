@@ -1,4 +1,4 @@
-import { fetchArticle } from "@/lib/api";
+import { fetchArticle, imageUrl } from "@/lib/api";
 import { TopicLabel } from "@/components/TopicLabel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -54,7 +54,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       {article.image_url && (
         <div className="mb-6">
           <div className="aspect-[16/9] rounded-lg overflow-hidden bg-muted">
-            <img src={article.image_url} alt="" className="w-full h-full object-cover" />
+            <img src={imageUrl(article.image_url) ?? ""} alt="" className="w-full h-full object-cover" />
           </div>
           {article.image_attribution && (
             <p className="mt-1 text-xs text-muted-foreground italic">

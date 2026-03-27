@@ -26,6 +26,7 @@ app.post("/api/trigger/ingest", async (c) => {
   const { embedStories } = await import("./vectorize/embeddings");
   const { enrichStories } = await import("./production/enrich");
   const { rewriteBillHeadlines } = await import("./production/rewrite-headlines");
+  const { generateMissingImages } = await import("./production/images");
 
   // Phase 1: Ingest from all data sources in parallel
   // Perplexity news discovery runs alongside Perigon as backup/supplement
@@ -79,7 +80,15 @@ app.post("/api/trigger/ingest", async (c) => {
     errors.push(`Headlines: ${String(error)}`);
   }
 
-  // Phase 6: Editorial synthesis via Perplexity (uses triaged stories)
+  // Phase 6: Generate editorial illustrations for stories without images
+  let imagesGenerated = 0;
+  try {
+    imagesGenerated = await generateMissingImages(c.env);
+  } catch (error) {
+    errors.push(`Images: ${String(error)}`);
+  }
+
+  // Phase 7: Editorial synthesis via Perplexity (uses triaged stories)
   let briefing: string | null = null;
   try {
     const editorial = await ingestFromPerplexity(c.env, triagedStories);
@@ -97,6 +106,7 @@ app.post("/api/trigger/ingest", async (c) => {
     highRelevance,
     storiesEnriched: enrichResult.enriched,
     headlinesRewritten,
+    imagesGenerated,
     briefingLength: briefing?.length ?? 0,
     topStory: triagedStories.length > 0 ? {
       headline: triagedStories[0].headline,
@@ -358,6 +368,26 @@ app.get("/api/topic/:topic", async (c) => {
     stories: stories.results,
     bills: bills.results,
   });
+});
+
+// Bill detail
+app.get("/api/bill/:id", async (c) => {
+  const id = decodeURIComponent(c.req.param("id"));
+
+  const bill = await c.env.DB.prepare(
+    "SELECT * FROM bills WHERE id = ?"
+  ).bind(id).first();
+
+  if (!bill) {
+    return c.json({ error: "Bill not found" }, 404);
+  }
+
+  // Find the corresponding story for this bill (if article was generated)
+  const story = await c.env.DB.prepare(
+    "SELECT * FROM stories WHERE id = ?"
+  ).bind(id).first();
+
+  return c.json({ bill, story });
 });
 
 // Floor data — bills, floor actions, presidential actions, congressional record

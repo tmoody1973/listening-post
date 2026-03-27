@@ -51,6 +51,15 @@ export function audioUrl(path: string): string {
   return `${API_BASE}/${path}`;
 }
 
+export function imageUrl(url: string | null): string | null {
+  if (!url) return null;
+  // Already a full URL (Perigon images etc.)
+  if (url.startsWith("http")) return url;
+  // Relative path — prefix with API base (images served from Worker R2)
+  if (url.startsWith("/")) return `${API_BASE}${url}`;
+  return `${API_BASE}/${url}`;
+}
+
 export async function fetchFloorData() {
   const res = await fetch(`${API_BASE}/api/floor`, { next: { revalidate: 300 } });
   if (!res.ok) return null;

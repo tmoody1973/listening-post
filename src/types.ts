@@ -28,6 +28,7 @@ export interface Env {
   FRED_API_KEY: string;
   UNSPLASH_ACCESS_KEY: string;
   PEXELS_API_KEY: string;
+  GEMINI_API_KEY: string;
 }
 
 // Story as stored in D1

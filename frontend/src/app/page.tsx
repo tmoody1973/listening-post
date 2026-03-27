@@ -1,4 +1,4 @@
-import { fetchStories, fetchEpisodes, fetchManifest, fetchFloorData, getTopicColor } from "@/lib/api";
+import { fetchStories, fetchEpisodes, fetchManifest, fetchFloorData, getTopicColor, imageUrl } from "@/lib/api";
 import { EditionPlayer } from "@/components/EditionPlayer";
 
 export const revalidate = 300;
@@ -73,7 +73,7 @@ export default async function HomePage() {
                 <div className="relative p-1 border border-white/20 mb-4">
                   <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                   <img
-                    src={leadStory.image_url}
+                    src={imageUrl(leadStory.image_url) ?? ""}
                     alt=""
                     className="w-full aspect-[16/10] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                   />
@@ -107,7 +107,7 @@ export default async function HomePage() {
                   <div className="relative p-1 border border-white/20 mb-3">
                     <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                     <img
-                      src={story.image_url}
+                      src={imageUrl(story.image_url) ?? ""}
                       alt=""
                       className="w-full aspect-[16/9] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                     />
@@ -183,8 +183,7 @@ export default async function HomePage() {
             {federalBills.slice(0, 6).map((bill: any) => (
               <a
                 key={bill.id}
-                href={bill.source_url ?? `/story/${bill.id}`}
-                target={bill.source_url ? "_blank" : undefined}
+                href={`/bill/${encodeURIComponent(bill.id)}`}
                 className="block group"
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -215,8 +214,7 @@ export default async function HomePage() {
             {stateBills.slice(0, 6).map((bill: any) => (
               <a
                 key={bill.id}
-                href={bill.source_url ?? `/story/${bill.id}`}
-                target={bill.source_url ? "_blank" : undefined}
+                href={`/bill/${encodeURIComponent(bill.id)}`}
                 className="block group"
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -249,7 +247,7 @@ export default async function HomePage() {
               <div className="relative p-1 border border-white/20 mb-3">
                 <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                 <img
-                  src={story.image_url}
+                  src={imageUrl(story.image_url) ?? ""}
                   alt=""
                   className="w-full aspect-[16/10] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                 />
