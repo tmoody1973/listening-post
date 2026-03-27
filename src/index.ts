@@ -22,6 +22,7 @@ app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromFRED } = await import("./ingestion/fred");
   const { ingestFromOpenStates } = await import("./ingestion/openstates");
   const { ingestFromPerplexity, discoverNewsViaPerplexity } = await import("./ingestion/perplexity");
+  const { ingestCongressionalRecordArticles } = await import("./ingestion/congressional-record");
   const { triageStories } = await import("./production/triage");
   const { embedStories } = await import("./vectorize/embeddings");
   const { enrichStories } = await import("./production/enrich");
@@ -36,6 +37,7 @@ app.post("/api/trigger/ingest", async (c) => {
     ingestFromFRED(c.env),
     ingestFromOpenStates(c.env),
     discoverNewsViaPerplexity(c.env),
+    ingestCongressionalRecordArticles(c.env),
   ]);
 
   const allStories: any[] = [];
