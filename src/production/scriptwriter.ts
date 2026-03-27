@@ -141,12 +141,19 @@ export async function generateActDialogue(
     })
     .join("\n\n");
 
-  const voiceGuide = `Three speakers with names:
-- ANCHOR: Named "Sarah". Warm, authoritative host. Frames stories, asks questions, handles transitions and sign-offs. Opens the show with "I'm Sarah, and this is The Listening Post."
-- CORRESPONDENT: Named "Marcus". Detailed, explanatory correspondent. Leads research and analysis. Introduced in the cold open: "I'm joined by our correspondent Marcus..."
-- DISTRICT_DESK: Named "Kesha". Direct, data-driven reporter. Covers floor activity, voting records, and economic data. Introduced when she first speaks: "Let's go to Kesha at the capitol..."
+  const voiceGuide = `Three speakers. NEVER confuse their names or roles:
 
-Use all three speakers by name. They should refer to each other naturally: "Sarah", "Marcus", "Kesha". This makes it feel like a real broadcast team, not anonymous voices.`;
+ANCHOR = Marcus. He is the main host. He opens and closes the show. He introduces stories and asks questions.
+CORRESPONDENT = Sarah. She is the correspondent. She explains, analyzes, and goes deep on stories.
+DISTRICT_DESK = Kesha. She is the capitol reporter. She covers legislation, floor votes, and government data.
+
+CRITICAL RULES:
+- Lines starting with "ANCHOR:" are ALWAYS spoken by Marcus. Marcus NEVER calls himself Sarah or Kesha.
+- Lines starting with "CORRESPONDENT:" are ALWAYS spoken by Sarah. Sarah NEVER calls herself Marcus or Kesha.
+- Lines starting with "DISTRICT_DESK:" are ALWAYS spoken by Kesha. Kesha NEVER calls herself Marcus or Sarah.
+- When Marcus hands off to Sarah, he says "Sarah" — and the NEXT line MUST start with "CORRESPONDENT:"
+- When Marcus hands off to Kesha, he says "Kesha" — and the NEXT line MUST start with "DISTRICT_DESK:"
+- Each person only refers to THEMSELVES by their OWN name, and refers to the OTHERS by their names.`;
 
   const formatGuide = `Format each line EXACTLY as:
 SPEAKER: Dialogue text here.
@@ -170,10 +177,10 @@ IMPORTANT RULES:
   if (edition === "morning") {
     if (actIndex === 0) {
       actPrompt = `This is ACT 1: THE BRIEFING for the Morning Edition.
-Start with Sarah introducing the show: "Good morning, I'm Sarah, and this is The Listening Post — your Milwaukee morning briefing. I'm joined by our correspondent Marcus and our capitol reporter Kesha."
-Then Sarah hooks the biggest story with one compelling line.
-Cover 3-4 top headlines with Sarah leading. Marcus adds color on the lead story. Kesha jumps in on any legislative news.
-End with Sarah transitioning to the deep dive: "Marcus, take us deeper on this one."
+Start with Marcus introducing the show: "Good morning, I'm Marcus, and this is The Listening Post — your Milwaukee morning briefing. I'm joined by our correspondent Sarah and our capitol reporter Kesha."
+Then Marcus hooks the biggest story with one compelling line.
+Cover 3-4 top headlines with Marcus leading. Sarah adds color on the lead story. Kesha jumps in on any legislative news.
+End with Marcus transitioning to the deep dive: "Sarah, take us deeper on this one."
 Target: 4000-4500 characters total across all speakers. This should produce about three to four minutes of audio. Write a full, substantive segment — not a summary.`;
     } else if (actIndex === 1) {
       actPrompt = `This is ACT 2: THE DEEP DIVE for the Morning Edition.
@@ -189,8 +196,8 @@ Target: 3000-4000 characters total. This should produce about three minutes of a
   } else {
     if (actIndex === 0) {
       actPrompt = `This is ACT 1: DAY IN REVIEW for the Evening Edition.
-Start with Sarah: "Good evening, I'm Sarah, and this is The Listening Post evening edition. Marcus and Kesha are here with me."
-Sarah leads with today's biggest outcome. Marcus adds context. Kesha covers what happened on the floor.
+Start with Marcus: "Good evening, I'm Marcus, and this is The Listening Post evening edition. Sarah and Kesha are here with me."
+Marcus leads with today's biggest outcome. Sarah adds context. Kesha covers what happened on the floor.
 Target: 4000-4500 characters total. This should produce about three to four minutes of audio.`;
     } else if (actIndex === 1) {
       actPrompt = `This is ACT 2: ANALYSIS for the Evening Edition.
