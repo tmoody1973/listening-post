@@ -154,7 +154,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 >
                   {r.topic}
                 </span>
-                <p className="font-medium leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
+                <p className="font-medium leading-snug">
                   {r.headline}
                 </p>
               </div>

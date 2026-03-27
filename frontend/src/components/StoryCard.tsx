@@ -24,7 +24,7 @@ export function StoryCard({ headline, summary, topic, slug, imageUrl, source, cr
         </div>
       )}
       <TopicLabel topic={topic} />
-      <h3 className="mt-1 font-medium leading-snug group-hover:text-[var(--color-coral)] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
+      <h3 className="mt-1 font-medium leading-snug group-hover:text-[var(--color-coral)] transition-colors">
         {headline}
       </h3>
       {summary && (

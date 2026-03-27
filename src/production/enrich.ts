@@ -1,6 +1,7 @@
 import type { Env } from "../types";
 
 const AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const PERPLEXITY_BASE = "https://api.perplexity.ai";
 
 interface StoryRow {
   id: string;
@@ -39,36 +40,51 @@ export async function enrichStories(env: Env): Promise<{ enriched: number; error
   let rewrittenHeadlines: { index: number; headline: string; topic: string }[] = [];
 
   try {
-    const rewriteResult = await env.AI.run(AI_MODEL, {
-      messages: [
-        {
-          role: "system",
-          content: `You rewrite legislative bill titles and technical headlines into clear, conversational news headlines.
+    const response = await fetch(`${PERPLEXITY_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content: `You rewrite legislative bill titles and technical headlines into clear, conversational news headlines.
 
 Rules:
 - Make headlines sound like they belong on NPR or a local news website
 - Remove "Relating to:" prefixes from bill titles
-- Remove bill numbers from the start (put them at the end if relevant)
+- Remove bill numbers from the start
 - Keep headlines under 80 characters
 - Use active voice: "Wisconsin bill would..." not "A bill relating to..."
-- If the story is already a good headline, keep it as-is
-- Also correct the topic. Valid topics: housing, economy, education, transit, safety, health, environment
-- Be specific with topics: a bill about schools is "education" not "economy"
+- If the story is already a good news headline, keep it as-is
+- Also assign the correct topic. Valid topics: housing, economy, education, transit, safety, health, environment, sports, culture, politics
 
-Return ONLY a JSON array: [{"index": 0, "headline": "...", "topic": "..."}]`,
-        },
-        {
-          role: "user",
-          content: `Rewrite these headlines and classify topics:\n${JSON.stringify(storyData, null, 2)}`,
-        },
-      ],
-      max_tokens: 3000,
-      temperature: 0.2,
-    }) as { response?: string };
+Return ONLY a JSON array: [{"index": 0, "headline": "...", "topic": "..."}]
+No explanation. Just the JSON array.`,
+          },
+          {
+            role: "user",
+            content: `Rewrite these headlines:\n${JSON.stringify(storyData)}`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 3000,
+      }),
+    });
 
-    const jsonMatch = (rewriteResult.response ?? "").match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      rewrittenHeadlines = JSON.parse(jsonMatch[0]);
+    if (response.ok) {
+      const data = await response.json() as { choices: { message: { content: string } }[] };
+      const text = data.choices?.[0]?.message?.content ?? "";
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        rewrittenHeadlines = JSON.parse(jsonMatch[0]);
+        console.log(`[Enrich] Perplexity rewrote ${rewrittenHeadlines.length} headlines`);
+      }
+    } else {
+      console.error(`[Enrich] Perplexity headline rewrite ${response.status}`);
     }
   } catch (error) {
     console.error("[Enrich] Headline rewrite failed:", error);

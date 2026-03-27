@@ -60,6 +60,9 @@ export function getTopicColor(topic: string): string {
     economy: "var(--color-topic-economy)",
     health: "var(--color-topic-health)",
     environment: "var(--color-topic-environment)",
+    sports: "var(--color-topic-sports)",
+    culture: "var(--color-topic-culture)",
+    politics: "var(--color-topic-politics)",
   };
   return colors[topic] ?? colors.economy;
 }

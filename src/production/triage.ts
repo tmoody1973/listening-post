@@ -1,68 +1,90 @@
 import type { Env, RawStory, TriagedStory } from "../types";
 
-const AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const PERPLEXITY_BASE = "https://api.perplexity.ai";
 
 export async function triageStories(env: Env, stories: RawStory[]): Promise<TriagedStory[]> {
   if (stories.length === 0) return [];
 
-  console.log(`[Triage] Scoring ${stories.length} stories...`);
+  console.log(`[Triage] Scoring ${stories.length} stories via Perplexity...`);
 
-  // Build the prompt with all stories
+  // Build compact story list for the prompt
   const storyList = stories.map((s, i) => ({
-    index: i,
-    headline: s.headline,
-    summary: s.summary?.slice(0, 200) ?? "",
-    topic: s.topic,
-    source: s.source,
+    i,
+    h: s.headline,
+    s: s.summary?.slice(0, 150) ?? "",
+    src: s.source,
   }));
 
-  const prompt = `You are an editorial desk for a Milwaukee, Wisconsin local news podcast.
-Score each story's relevance to Milwaukee residents on a scale of 0.0 to 1.0.
-
-Scoring criteria:
-- 0.8-1.0: Directly affects Milwaukee residents (local policy, WI state law, local economy)
-- 0.6-0.8: Wisconsin or Midwest regional impact
-- 0.4-0.6: National story with clear local implications
-- 0.2-0.4: National story with indirect local relevance
-- 0.0-0.2: Not relevant to Milwaukee
-
-Also verify or correct the topic classification for each story.
-Valid topics: housing, economy, education, transit, safety, health, environment
-
-Return ONLY a JSON array with objects like:
-[{"index": 0, "relevance": 0.85, "topic": "housing"}, ...]
-
-Stories:
-${JSON.stringify(storyList, null, 2)}`;
-
   try {
-    const result = await env.AI.run(AI_MODEL, {
-      messages: [
-        { role: "system", content: "You are a news editor. Return only valid JSON arrays. No explanations." },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 2000,
-      temperature: 0.1,
-    }) as { response?: string };
+    const response = await fetch(`${PERPLEXITY_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content: `You are a news editor for Milwaukee, Wisconsin. For each story, assign:
+1. relevance: 0.0-1.0 score for Milwaukee residents (0.8+ = directly local, 0.6-0.8 = WI/regional, 0.4-0.6 = national with local impact, below 0.4 = not very relevant)
+2. topic: EXACTLY one of: housing, economy, education, transit, safety, health, environment, sports, culture
 
-    const responseText = result.response ?? "";
+Topic guide:
+- housing: zoning, rent, building permits, landlords, real estate, homelessness
+- economy: jobs, wages, taxes, business, budget, trade, economic development
+- education: schools, universities, students, teachers, MPS, UW system
+- transit: roads, buses, MCTS, streetcar, highways, infrastructure, transportation
+- safety: crime, police, courts, guns, fire department, public safety, prisons
+- health: hospitals, insurance, mental health, drugs, Medicaid, public health
+- environment: climate, water, pollution, parks, energy, recycling
+- sports: Brewers, Bucks, Packers, Marquette, college sports, athletics, games, teams
+- culture: arts, music, festivals, restaurants, entertainment, museums, community events
+- politics: elections, campaigns, voting, executive orders, policy debates, party politics, government leadership
 
-    // Extract JSON array from response
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.error("[Triage] No JSON array in response:", responseText.slice(0, 200));
+Return ONLY a JSON array: [{"i":0,"r":0.85,"t":"housing"},...]
+No explanation. Just the array.`,
+          },
+          {
+            role: "user",
+            content: JSON.stringify(storyList),
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`[Triage] Perplexity ${response.status}`);
       return assignDefaultScores(stories);
     }
 
-    const scores = JSON.parse(jsonMatch[0]) as { index: number; relevance: number; topic: string }[];
+    const data = await response.json() as {
+      choices: { message: { content: string } }[];
+    };
+
+    const responseText = data.choices?.[0]?.message?.content ?? "";
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+
+    if (!jsonMatch) {
+      console.error("[Triage] No JSON in Perplexity response:", responseText.slice(0, 200));
+      return assignDefaultScores(stories);
+    }
+
+    const scores = JSON.parse(jsonMatch[0]) as { i: number; r: number; t: string }[];
 
     // Map scores back to stories
-    const triaged: TriagedStory[] = stories.map((story, i) => {
-      const score = scores.find((s) => s.index === i);
+    const validTopics = new Set(["housing", "economy", "education", "transit", "safety", "health", "environment", "sports", "culture", "politics"]);
+
+    const triaged: TriagedStory[] = stories.map((story, idx) => {
+      const score = scores.find((s) => s.i === idx);
+      const topic = score?.t && validTopics.has(score.t) ? score.t : story.topic;
       return {
         ...story,
-        relevance_score: score?.relevance ?? 0.3,
-        topic: score?.topic ?? story.topic,
+        relevance_score: score?.r ?? 0.3,
+        topic,
         research_package: null,
       };
     });
@@ -77,16 +99,20 @@ ${JSON.stringify(storyList, null, 2)}`;
           `UPDATE stories SET relevance_score = ?, topic = ? WHERE id = ?`
         ).bind(story.relevance_score, story.topic, story.id).run();
       } catch {
-        // Story might not be in D1 yet, skip
+        // Story might not be in D1 yet
       }
     }
 
     const highRelevance = triaged.filter((s) => s.relevance_score >= 0.6).length;
-    console.log(`[Triage] Scored ${triaged.length} stories. ${highRelevance} scored >= 0.6`);
+    const topicCounts: Record<string, number> = {};
+    for (const s of triaged) {
+      topicCounts[s.topic] = (topicCounts[s.topic] ?? 0) + 1;
+    }
+    console.log(`[Triage] Scored ${triaged.length} stories. ${highRelevance} high relevance. Topics:`, topicCounts);
 
     return triaged;
   } catch (error) {
-    console.error("[Triage] Workers AI failed:", error);
+    console.error("[Triage] Perplexity triage failed:", error);
     return assignDefaultScores(stories);
   }
 }

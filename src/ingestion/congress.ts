@@ -58,6 +58,22 @@ async function congressFetch(path: string, apiKey: string): Promise<unknown> {
   return response.json();
 }
 
+function toHumanUrl(bill: CongressBill): string {
+  // Convert "HR" -> "house-bill", "S" -> "senate-bill", etc.
+  const typeMap: Record<string, string> = {
+    hr: "house-bill",
+    s: "senate-bill",
+    hjres: "house-joint-resolution",
+    sjres: "senate-joint-resolution",
+    hconres: "house-concurrent-resolution",
+    sconres: "senate-concurrent-resolution",
+    hres: "house-resolution",
+    sres: "senate-resolution",
+  };
+  const slug = typeMap[bill.type.toLowerCase()] ?? bill.type.toLowerCase();
+  return `https://www.congress.gov/bill/${bill.congress}th-congress/${slug}/${bill.number}`;
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -105,7 +121,7 @@ async function ingestRecentBills(env: Env): Promise<RawStory[]> {
       n(bill.latestAction?.text),
       topic,
       "congress",
-      n(bill.url),
+      n(toHumanUrl(bill)),
       n(bill.latestAction?.text),
       n(bill.latestAction?.actionDate),
     ).run();
@@ -117,7 +133,7 @@ async function ingestRecentBills(env: Env): Promise<RawStory[]> {
       summary: bill.latestAction?.text ?? "",
       topic,
       source: "congress",
-      source_url: bill.url ?? null,
+      source_url: toHumanUrl(bill),
       image_url: null,
       image_caption: null,
       image_attribution: "Congress.gov",
