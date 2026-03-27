@@ -360,6 +360,35 @@ app.get("/api/topic/:topic", async (c) => {
   });
 });
 
+// Floor data — bills, floor actions, presidential actions, congressional record
+app.get("/api/floor", async (c) => {
+  const [federalBills, stateBills, floorActions, presidentialActions, congressionalRecord] = await Promise.all([
+    c.env.DB.prepare(
+      "SELECT * FROM bills WHERE source = 'congress' ORDER BY updated_at DESC LIMIT 10"
+    ).all(),
+    c.env.DB.prepare(
+      "SELECT * FROM bills WHERE source = 'openstates' ORDER BY updated_at DESC LIMIT 10"
+    ).all(),
+    c.env.DB.prepare(
+      "SELECT * FROM floor_actions ORDER BY date DESC, created_at DESC LIMIT 10"
+    ).all(),
+    c.env.DB.prepare(
+      "SELECT * FROM presidential_actions ORDER BY created_at DESC LIMIT 5"
+    ).all(),
+    c.env.DB.prepare(
+      "SELECT * FROM congressional_record ORDER BY date DESC LIMIT 5"
+    ).all(),
+  ]);
+
+  return c.json({
+    federalBills: federalBills.results ?? [],
+    stateBills: stateBills.results ?? [],
+    floorActions: floorActions.results ?? [],
+    presidentialActions: presidentialActions.results ?? [],
+    congressionalRecord: congressionalRecord.results ?? [],
+  });
+});
+
 app.get("/api/data/:topic", async (c) => {
   const topic = c.req.param("topic");
   const { FRED_SERIES } = await import("./types");

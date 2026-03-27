@@ -51,6 +51,12 @@ export function audioUrl(path: string): string {
   return `${API_BASE}/${path}`;
 }
 
+export async function fetchFloorData() {
+  const res = await fetch(`${API_BASE}/api/floor`, { next: { revalidate: 300 } });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export function getTopicColor(topic: string): string {
   const colors: Record<string, string> = {
     housing: "var(--color-topic-housing)",

@@ -18,18 +18,46 @@ export const metadata: Metadata = {
   description: "AI-powered local news platform delivering twice-daily podcasts and a living newsroom for Milwaukee, Wisconsin.",
 };
 
+const TOPICS = [
+  { label: "Housing", href: "/topic/housing" },
+  { label: "Politics", href: "/topic/politics" },
+  { label: "Economy", href: "/topic/economy" },
+  { label: "Safety", href: "/topic/safety" },
+  { label: "Education", href: "/topic/education" },
+  { label: "Health", href: "/topic/health" },
+  { label: "Transit", href: "/topic/transit" },
+];
+
 function Navbar() {
   return (
-    <nav className="border-b border-border">
-      <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-        <a href="/" className="flex items-baseline gap-1 text-lg tracking-tight">
-          <span className="font-light">the listening</span>
-          <span className="font-bold" style={{ color: "var(--color-coral)" }}>post</span>
-        </a>
-        <div className="flex gap-6 text-sm text-muted-foreground">
-          <a href="/topic/housing" className="hover:text-foreground transition-colors">Topics</a>
-          <a href="/podcast" className="hover:text-foreground transition-colors">Podcast</a>
+    <nav>
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Logo row */}
+        <div className="flex items-center justify-between py-4">
+          <a href="/" className="flex items-baseline gap-1.5">
+            <span className="text-sm font-light uppercase tracking-[0.3em]">the listening</span>
+            <span className="text-sm font-black uppercase tracking-[0.3em]" style={{ color: "var(--color-coral)" }}>post</span>
+          </a>
+          <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            <a href="/podcast" className="hover:text-foreground transition-colors">Podcast</a>
+          </div>
         </div>
+        {/* Thin rule */}
+        <div className="h-px bg-white/20" />
+        {/* Topic nav */}
+        <div className="flex items-center justify-center gap-6 py-3 overflow-x-auto">
+          {TOPICS.map((t) => (
+            <a
+              key={t.href}
+              href={t.href}
+              className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            >
+              {t.label}
+            </a>
+          ))}
+        </div>
+        {/* Thin rule */}
+        <div className="h-px bg-white/20" />
       </div>
     </nav>
   );
@@ -37,10 +65,15 @@ function Navbar() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border mt-16">
-      <div className="max-w-3xl mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-        <p>The Listening Post is an AI-generated news platform. All stories cite their sources.</p>
-        <p className="mt-1">Built for the Cloudflare x ElevenLabs Hackathon — March 2026</p>
+    <footer className="mt-16">
+      <div className="h-px bg-white/20" />
+      <div className="max-w-6xl mx-auto px-4 py-8 text-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          The Listening Post is an AI-generated civic news platform ◆ All stories cite their sources
+        </p>
+        <p className="mt-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50">
+          Built for the Cloudflare × ElevenLabs Hackathon — March 2026
+        </p>
       </div>
     </footer>
   );

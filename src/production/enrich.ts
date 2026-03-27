@@ -99,13 +99,20 @@ No explanation. Just the JSON array.`,
     const newHeadline = rewrite?.headline ?? story.headline;
     const newTopic = rewrite?.topic ?? story.topic;
 
-    // Generate article body
+    // Generate article body via Perplexity (more reliable than Workers AI, no neuron limit)
     try {
-      const bodyResult = await env.AI.run(AI_MODEL, {
-        messages: [
-          {
-            role: "system",
-            content: `You are a local news writer for Milwaukee, Wisconsin. Write a concise 3-4 paragraph article based on the headline and summary.
+      const bodyResponse = await fetch(`${PERPLEXITY_BASE}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${env.PERPLEXITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "sonar",
+          messages: [
+            {
+              role: "system",
+              content: `You are a local news writer for Milwaukee, Wisconsin. Write a concise 3-4 paragraph article based on the headline and summary.
 
 Rules:
 - Write in clear, journalistic prose — not academic or technical
@@ -118,17 +125,22 @@ Rules:
 - For economic data, cite "Federal Reserve data" or "Bureau of Labor Statistics"
 - Keep it under 300 words total
 - Do not include a headline — just the article body`,
+            },
+            {
+              role: "user",
+              content: `Write an article:\nHeadline: ${newHeadline}\nSummary: ${story.summary ?? "No summary available"}\nTopic: ${newTopic}\nSource: ${story.source}`,
+            },
+          ],
+          temperature: 0.3,
+          web_search_options: {
+            search_context_size: "medium",
+            user_location: { latitude: 43.0389, longitude: -87.9065, country: "US" },
           },
-          {
-            role: "user",
-            content: `Write an article:\nHeadline: ${newHeadline}\nSummary: ${story.summary ?? "No summary available"}\nTopic: ${newTopic}\nSource: ${story.source}`,
-          },
-        ],
-        max_tokens: 1500,
-        temperature: 0.3,
-      }) as { response?: string };
+        }),
+      });
 
-      const body = bodyResult.response ?? "";
+      const bodyData = await bodyResponse.json() as { choices: { message: { content: string } }[] };
+      const body = bodyData.choices?.[0]?.message?.content ?? "";
 
       if (body.length > 50) {
         await env.DB.prepare(
