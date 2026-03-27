@@ -55,8 +55,7 @@ export function LeadStory({ headline, summary, topic, slug, imageUrl, source }: 
       <TopicLabel topic={topic} />
       <h2
         className="mt-2 text-xl font-medium leading-tight group-hover:text-[var(--color-coral)] transition-colors"
-        style={{ fontFamily: "var(--font-serif)" }}
-      >
+             >
         {headline}
       </h2>
       {summary && (

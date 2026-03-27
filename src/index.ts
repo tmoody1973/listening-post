@@ -24,6 +24,7 @@ app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromPerplexity } = await import("./ingestion/perplexity");
   const { triageStories } = await import("./production/triage");
   const { embedStories } = await import("./vectorize/embeddings");
+  const { enrichStories } = await import("./production/enrich");
 
   // Phase 1: Ingest from all data sources in parallel
   const results = await Promise.allSettled([
@@ -59,7 +60,15 @@ app.post("/api/trigger/ingest", async (c) => {
     errors.push(`Vectorize: ${String(error)}`);
   }
 
-  // Phase 4: Editorial synthesis via Perplexity (uses triaged stories)
+  // Phase 4: Enrich stories — rewrite headlines, fix topics, generate article bodies
+  let enrichResult = { enriched: 0, errors: 0 };
+  try {
+    enrichResult = await enrichStories(c.env);
+  } catch (error) {
+    errors.push(`Enrich: ${String(error)}`);
+  }
+
+  // Phase 5: Editorial synthesis via Perplexity (uses triaged stories)
   let briefing: string | null = null;
   try {
     const editorial = await ingestFromPerplexity(c.env, triagedStories);
@@ -75,6 +84,7 @@ app.post("/api/trigger/ingest", async (c) => {
     storiesIngested: allStories.length,
     storiesTriaged: triagedStories.length,
     highRelevance,
+    storiesEnriched: enrichResult.enriched,
     briefingLength: briefing?.length ?? 0,
     topStory: triagedStories.length > 0 ? {
       headline: triagedStories[0].headline,

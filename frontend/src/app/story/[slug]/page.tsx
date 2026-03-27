@@ -31,8 +31,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <TopicLabel topic={article.topic} />
         <h1
           className="mt-2 text-2xl font-medium leading-tight"
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
+                 >
           {article.headline}
         </h1>
         {article.summary && (
@@ -69,7 +68,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       {article.body && (
         <div
           className="prose prose-sm max-w-none leading-relaxed"
-          style={{ fontFamily: "var(--font-serif)", lineHeight: "1.7" }}
+          style={{ lineHeight: "1.7" }}
         >
           {article.body.split("\n\n").map((paragraph: string, i: number) => (
             <p key={i} className="mb-4 text-foreground">

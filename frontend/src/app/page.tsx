@@ -87,7 +87,6 @@ export default async function HomePage() {
                   </span>
                   <h3
                     className="mt-0.5 text-sm font-medium leading-snug group-hover:text-[var(--color-coral)] transition-colors line-clamp-2"
-                    style={{ fontFamily: "var(--font-serif)" }}
                   >
                     {story.headline}
                   </h3>
