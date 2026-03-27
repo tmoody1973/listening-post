@@ -126,21 +126,28 @@ export async function generateActDialogue(
     .join("\n\n");
 
   const voiceGuide = `Three speakers:
-- ANCHOR: Warm, authoritative. Frames stories, asks questions, handles transitions. Voice ID will be assigned.
-- CORRESPONDENT: Detailed, explanatory. Leads research and analysis. Voice ID will be assigned.
-- DISTRICT_DESK: Direct, data-driven. Covers floor activity and voting records. Voice ID will be assigned.`;
+- ANCHOR: Warm, authoritative. Frames stories, asks questions, handles transitions and sign-offs.
+- CORRESPONDENT: Detailed, explanatory. Leads research and analysis.
+- DISTRICT_DESK: Direct, data-driven. Covers floor activity, voting records, and economic data.
+
+Use all three speakers. Each speaker must have a distinct role in the conversation.`;
 
   const formatGuide = `Format each line EXACTLY as:
-SPEAKER: [audio_tag] Dialogue text here.
+SPEAKER: Dialogue text here.
 
 Valid speakers: ANCHOR, CORRESPONDENT, DISTRICT_DESK
-Valid audio tags: [confidently] [curious] [analytical] [serious] [thoughtful] [jumping in] [wrapping up] [direct] [genuine]
 
-Use dashes for interruptions: "So what you're saying is—"
-Use ellipses for trailing: "And that means..."
-
-Write numbers spelled out: "one hundred ninety-eight thousand dollars" not "$198,000"
-Write dates spelled out: "March twenty-sixth" not "March 26"`;
+IMPORTANT RULES:
+- Do NOT include any brackets, tags, or stage directions like [confidently] or [laughs]
+- Just write natural dialogue. The voice acting comes from the AI voices, not from tags.
+- Use dashes for interruptions: "So what you're saying is—"
+- Use ellipses for trailing: "And that means..."
+- Write numbers spelled out: "one hundred ninety-eight thousand dollars" not "$198,000"
+- Write dates spelled out: "March twenty-sixth" not "March 26"
+- NEVER say "according to Perigon" or "according to OpenStates" or "according to FRED"
+- These are data pipelines, not sources. Cite the REAL source: "according to the Milwaukee Journal Sentinel", "according to the Bureau of Labor Statistics", "according to the Wisconsin State Legislature", "according to Congress dot gov"
+- When citing economic data, say "Federal Reserve data shows" or "Bureau of Labor Statistics reports"
+- When citing bills, say "the Wisconsin State Senate" or "the U.S. House" — not "OpenStates"`;
 
   let actPrompt = "";
 
@@ -200,7 +207,7 @@ Write the dialogue script now. Remember: write for the EAR, not the eye. Short s
       messages: [
         {
           role: "system",
-          content: "You are a broadcast script writer for a Milwaukee local news podcast. Write natural, engaging dialogue between three hosts. Follow the format exactly. Do not include stage directions, only speaker lines with audio tags.",
+          content: "You are a broadcast script writer for a Milwaukee local news podcast called The Listening Post. Write natural, engaging dialogue between three hosts: ANCHOR, CORRESPONDENT, and DISTRICT_DESK. Follow the format exactly. Do NOT include any brackets, tags, stage directions, or emotional cues — just clean dialogue text. Do NOT mention data sources like Perigon, OpenStates, or FRED — always cite the real source (e.g., Milwaukee Journal Sentinel, Wisconsin State Legislature, Bureau of Labor Statistics, Congress).",
         },
         { role: "user", content: prompt },
       ],
@@ -228,7 +235,7 @@ function parseDialogueScript(script: string): DialogueTurn[] {
   };
 
   for (const line of lines) {
-    // Match patterns like "ANCHOR: [confidently] text here"
+    // Match patterns like "ANCHOR: text here" or "CORRESPONDENT: text here"
     const match = line.match(/^(ANCHOR|CORRESPONDENT|DISTRICT[_ ]DESK)\s*:\s*(.+)$/i);
     if (!match) continue;
 

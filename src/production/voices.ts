@@ -2,21 +2,19 @@ import type { Env, DialogueTurn } from "../types";
 
 const ELEVENLABS_BASE = "https://api.elevenlabs.io/v1";
 
-// Voice IDs — these should be selected from the ElevenLabs voice library
-// TODO: Replace with actual selected voice IDs after auditioning on Day 3
+// Voice IDs — selected from ElevenLabs voice library
 const VOICE_IDS: Record<string, string> = {
-  anchor: "pNInz6obpgDQGcFmaJgB",       // Adam — warm, authoritative
-  correspondent: "ErXwobaYiN019PkySvjV", // Antoni — detailed, explanatory
-  district_desk: "VR6AewLTigWG4xSOukaG", // Arnold — direct, data-driven
+  anchor: "UgBBYS2sOqTuMpoF3BR0",       // Voice 1 — anchor
+  correspondent: "2qfp6zPuviqeCOZIE9RZ", // Voice 2 — correspondent
+  district_desk: "RILOU7YmBhvwJGDGjNmP", // Voice 3 — district desk
 };
 
 interface TextToDialogueRequest {
   model_id: string;
-  dialogue: {
-    voice_id: string;
+  inputs: {
     text: string;
+    voice_id: string;
   }[];
-  output_format?: string;
   seed?: number;
 }
 
@@ -31,15 +29,16 @@ export async function voiceAct(
     throw new Error("No dialogue turns to voice");
   }
 
-  // Assign voice IDs to each turn
+  // Assign voice IDs and strip any audio tags from text
   const dialogueWithVoices = dialogue.map((turn) => ({
     voice_id: VOICE_IDS[turn.voice] ?? VOICE_IDS.anchor,
-    text: turn.text,
-  }));
+    text: turn.text.replace(/\[[\w\s]+\]\s*/g, "").trim(),
+  })).filter((d) => d.text.length > 0);
 
   // Calculate total character count
   const totalChars = dialogueWithVoices.reduce((sum, d) => sum + d.text.length, 0);
-  console.log(`[Voices] Act ${actId}: ${dialogue.length} turns, ${totalChars} chars`);
+  const uniqueVoices = new Set(dialogueWithVoices.map((d) => d.voice_id));
+  console.log(`[Voices] Act ${actId}: ${dialogue.length} turns, ${totalChars} chars, ${uniqueVoices.size} distinct voices: ${[...uniqueVoices].join(", ")}`);
 
   // Check if under 5000 char limit for v3
   if (totalChars > 5000) {
@@ -54,19 +53,22 @@ export async function voiceAct(
     dialogueWithVoices.push(...truncated);
   }
 
+  // Build request with correct field name: "inputs" not "dialogue"
   const requestBody: TextToDialogueRequest = {
     model_id: "eleven_v3",
-    dialogue: dialogueWithVoices,
-    output_format: "mp3_44100_128",
+    inputs: dialogueWithVoices.map((d) => ({ text: d.text, voice_id: d.voice_id })),
   };
 
   if (seed !== undefined) {
     requestBody.seed = seed;
   }
 
+  // Log the first 2 turns for debugging
+  console.log(`[Voices] Request preview for ${actId}:`, JSON.stringify(requestBody.inputs.slice(0, 2).map((d) => ({ voice_id: d.voice_id, text: d.text.slice(0, 60) }))));
   console.log(`[Voices] Calling Text to Dialogue API for ${actId}...`);
 
-  const response = await fetch(`${ELEVENLABS_BASE}/text-to-dialogue`, {
+  // output_format is a query parameter, not body field
+  const response = await fetch(`${ELEVENLABS_BASE}/text-to-dialogue?output_format=mp3_44100_128`, {
     method: "POST",
     headers: {
       "xi-api-key": env.ELEVENLABS_API_KEY,
@@ -77,6 +79,7 @@ export async function voiceAct(
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error(`[Voices] Text to Dialogue FAILED ${response.status}: ${errorText}`);
     throw new Error(`ElevenLabs API ${response.status}: ${errorText}`);
   }
 
