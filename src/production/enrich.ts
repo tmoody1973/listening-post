@@ -139,19 +139,35 @@ Rules:
         }),
       });
 
-      const bodyData = await bodyResponse.json() as { choices: { message: { content: string } }[] };
+      const bodyData = await bodyResponse.json() as {
+        choices: { message: { content: string } }[];
+        citations?: string[];
+      };
       const body = bodyData.choices?.[0]?.message?.content ?? "";
+      const citations = bodyData.citations ?? [];
+
+      // Build sources_json from Perplexity citations (real URLs)
+      const sourcesJson = citations.length > 0
+        ? JSON.stringify(citations.map((url: string) => {
+            // Extract domain as display name
+            try {
+              const domain = new URL(url).hostname.replace("www.", "");
+              return { name: domain, url };
+            } catch {
+              return { name: url, url };
+            }
+          }))
+        : null;
 
       if (body.length > 50) {
         await env.DB.prepare(
-          `UPDATE stories SET headline = ?, topic = ?, body = ? WHERE id = ?`
-        ).bind(newHeadline, newTopic, body, story.id).run();
+          `UPDATE stories SET headline = ?, topic = ?, body = ?, sources_json = ? WHERE id = ?`
+        ).bind(newHeadline, newTopic, body, sourcesJson, story.id).run();
         enriched++;
       } else {
-        // At least update headline and topic
         await env.DB.prepare(
-          `UPDATE stories SET headline = ?, topic = ? WHERE id = ?`
-        ).bind(newHeadline, newTopic, story.id).run();
+          `UPDATE stories SET headline = ?, topic = ?, sources_json = ? WHERE id = ?`
+        ).bind(newHeadline, newTopic, sourcesJson, story.id).run();
         enriched++;
       }
     } catch (error) {

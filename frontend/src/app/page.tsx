@@ -120,11 +120,11 @@ export default async function HomePage() {
                   <span className="text-muted-foreground">◆</span>
                   <span className="text-muted-foreground">{getSourceDisplay(story)}</span>
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
+                <h3 className="text-lg font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
                   {story.headline}
                 </h3>
                 {!story.image_url && story.summary && (
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{story.summary}</p>
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{story.summary}</p>
                 )}
                 {i < sideStories.length - 1 && <div className="h-px bg-white/10 mt-5" />}
               </a>

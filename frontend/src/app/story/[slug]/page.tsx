@@ -109,34 +109,62 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       )}
 
       {/* Source Attribution */}
-      {(sources.length > 0 || article.source_url) && (
-        <>
-          <Separator className="my-8" />
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Sources</h3>
-            <ol className="space-y-2 text-sm list-decimal list-inside text-muted-foreground">
-              {sources.map((source: any, i: number) => (
-                <li key={i}>
-                  {source.url ? (
-                    <a href={source.url} className="hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
-                      {source.name ?? source.url}
-                    </a>
-                  ) : (
-                    <span>{source.name ?? "Source"}</span>
-                  )}
-                </li>
-              ))}
-              {article.source_url && sources.length === 0 && (
-                <li>
-                  <a href={article.source_url} className="hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
-                    {article.source} — original source
-                  </a>
-                </li>
+      <Separator className="my-8" />
+      <div className="border border-white/10 p-5">
+        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Sources & Attribution</h3>
+        <div className="space-y-3">
+          {/* Original source */}
+          {article.source_url && (
+            <div className="flex items-start gap-3">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground w-24 shrink-0 pt-0.5">Original</span>
+              <a
+                href={article.source_url}
+                className="text-sm text-[var(--color-coral)] hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {article.image_attribution && !["perigon", "AI-generated illustration", "OpenStates", "Congress.gov", "FRED"].includes(article.image_attribution)
+                  ? article.image_attribution
+                  : article.source === "congress" ? "Congress.gov"
+                  : article.source === "openstates" ? "Wisconsin Legislature"
+                  : article.source === "fred" ? "Federal Reserve Economic Data"
+                  : "Original source"
+                } →
+              </a>
+            </div>
+          )}
+          {/* Data source */}
+          <div className="flex items-start gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground w-24 shrink-0 pt-0.5">Data</span>
+            <span className="text-sm text-muted-foreground">
+              {article.source === "congress" ? "Congress.gov API"
+                : article.source === "openstates" ? "OpenStates API (Wisconsin)"
+                : article.source === "fred" ? "Federal Reserve Economic Data (FRED)"
+                : article.source === "perplexity" ? "Multiple news sources via web search"
+                : "Perigon News API"
+              }
+            </span>
+          </div>
+          {/* AI attribution */}
+          <div className="flex items-start gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground w-24 shrink-0 pt-0.5">Analysis</span>
+            <span className="text-sm text-muted-foreground">AI-generated article by The Listening Post</span>
+          </div>
+          {/* Additional parsed sources */}
+          {sources.length > 0 && sources.map((source: any, i: number) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground w-24 shrink-0 pt-0.5">Ref {i + 1}</span>
+              {source.url ? (
+                <a href={source.url} className="text-sm text-[var(--color-coral)] hover:underline" target="_blank" rel="noopener noreferrer">
+                  {source.name ?? source.url}
+                </a>
+              ) : (
+                <span className="text-sm text-muted-foreground">{source.name ?? "Source"}</span>
               )}
-            </ol>
-          </Card>
-        </>
-      )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Related Stories */}
       {related.length > 0 && (
