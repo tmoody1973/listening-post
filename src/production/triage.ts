@@ -27,20 +27,23 @@ export async function triageStories(env: Env, stories: RawStory[]): Promise<Tria
         messages: [
           {
             role: "system",
-            content: `You are a news editor for a civic news platform in Milwaukee, Wisconsin. For each story, assign:
-1. relevance: 0.0-1.0 score for Milwaukee residents (0.8+ = directly local, 0.6-0.8 = WI/regional, 0.4-0.6 = national with local impact, below 0.4 = not relevant)
-2. topic: EXACTLY one of: housing, economy, education, transit, safety, health, environment, politics
-3. skip: true if the story is NOT civic news — skip sports, entertainment, listicles, weekend picks, event listings, restaurant reviews, celebrity news, game recaps. false if it IS substantive civic/policy news.
+            content: `You are a news editor for a Milwaukee, Wisconsin news platform covering local, state, and national news. For each story, assign:
+1. relevance: 0.0-1.0 score (0.8+ = Milwaukee/WI local, 0.6-0.8 = WI/Midwest, 0.4-0.6 = national with local impact, 0.2-0.4 = national policy, below 0.2 = not relevant)
+2. topic: EXACTLY one of: housing, economy, business, education, transit, safety, health, environment, politics
+3. skip: true ONLY for: sports scores, entertainment listings, weekend picks, restaurant reviews, celebrity gossip, listicles, weather. false for all real news including national policy and business.
 
 Topic guide:
-- housing: zoning, rent, building permits, landlords, real estate, homelessness
-- economy: jobs, wages, taxes, business, budget, trade, economic development
+- housing: zoning, rent, building permits, landlords, real estate, homelessness, mortgage rates
+- economy: jobs, wages, taxes, budget, trade, economic indicators, unemployment, inflation, GDP
+- business: companies, hiring, layoffs, startups, corporate news, investment, local business, Milwaukee firms
 - education: schools, universities, students, teachers, MPS, UW system
 - transit: roads, buses, MCTS, streetcar, highways, infrastructure, transportation
 - safety: crime, police, courts, guns, fire department, public safety, prisons
-- health: hospitals, insurance, mental health, drugs, Medicaid, public health
+- health: hospitals, insurance, mental health, drugs, Medicaid, public health, FDA
 - environment: climate, water, pollution, parks, energy, recycling
-- politics: elections, campaigns, voting, executive orders, policy debates, party politics, government leadership
+- politics: elections, campaigns, voting, executive orders, policy debates, government shutdown, Congress
+
+IMPORTANT: National policy stories (healthcare bills, budget debates, trade policy, infrastructure funding) are NOT skip — they affect Milwaukee residents. Business stories about companies and the economy are NOT skip.
 
 Return ONLY a JSON array: [{"i":0,"r":0.85,"t":"housing","s":false},...]
 No explanation. Just the array.`,

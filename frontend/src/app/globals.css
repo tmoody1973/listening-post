@@ -7,10 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --font-serif: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --color-coral: #D85A30;
   --color-coral-dark: #B84A25;
   --color-topic-housing: #185FA5;
@@ -145,9 +145,13 @@
 /* Force sans-serif globally — prevent Tailwind v4 serif variable and browser defaults */
 @layer base {
   *, *::before, *::after {
-    font-family: var(--font-sans);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   }
   html {
-    font-family: var(--font-sans);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+  /* Headlines use Barlow Condensed */
+  h1, h2, h3, h4 {
+    font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   }
 }

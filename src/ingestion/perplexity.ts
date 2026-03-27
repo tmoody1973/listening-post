@@ -147,7 +147,7 @@ Focus on: city government, county board, state legislature, housing, crime, educ
         },
         {
           role: "user",
-          content: "What are today's most important civic news stories affecting Milwaukee, Wisconsin residents?",
+          content: "What are today's most important news stories? Include: 1) Milwaukee/Wisconsin local stories (4-5), 2) National policy stories that affect Wisconsin residents — healthcare, housing, economy, infrastructure (3-4), 3) Business news — local Milwaukee companies and national business with local impact (2-3). Focus on substance, not fluff.",
         },
       ],
       search_recency_filter: "day",

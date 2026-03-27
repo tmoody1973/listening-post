@@ -70,11 +70,12 @@ export default async function HomePage() {
           {leadStory && (
             <a href={`/story/${leadStory.slug}`} className="group block">
               {leadStory.image_url && (
-                <div className="aspect-[16/10] overflow-hidden mb-4">
+                <div className="relative p-1 border border-white/20 mb-4">
+                  <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                   <img
                     src={leadStory.image_url}
                     alt=""
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                    className="w-full aspect-[16/10] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                   />
                 </div>
               )}
@@ -83,7 +84,7 @@ export default async function HomePage() {
                   {leadStory.topic}
                 </span>
                 <span className="text-muted-foreground">◆</span>
-                <span className="text-muted-foreground">{leadStory.source}</span>
+                <span className="text-muted-foreground">{leadStory.image_attribution ?? leadStory.source}</span>
               </div>
               <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight leading-tight group-hover:text-[var(--color-coral)] transition-colors">
                 {leadStory.headline}
@@ -99,15 +100,16 @@ export default async function HomePage() {
 
         {/* Sidebar — 2 cols */}
         <div className="lg:col-span-2">
-          <div className="space-y-6">
-            {sideStories.map((story: any) => (
+          <div className="space-y-5">
+            {sideStories.map((story: any, i: number) => (
               <a key={story.id} href={`/story/${story.slug}`} className="group block">
-                {story.image_url && (
-                  <div className="aspect-[16/10] overflow-hidden mb-3">
+                {story.image_url && i === 0 && (
+                  <div className="relative p-1 border border-white/20 mb-3">
+                    <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                     <img
                       src={story.image_url}
                       alt=""
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      className="w-full aspect-[16/9] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                     />
                   </div>
                 )}
@@ -116,11 +118,15 @@ export default async function HomePage() {
                     {story.topic}
                   </span>
                   <span className="text-muted-foreground">◆</span>
-                  <span className="text-muted-foreground">{story.source}</span>
+                  <span className="text-muted-foreground">{story.image_attribution ?? story.source}</span>
                 </div>
                 <h3 className="text-sm font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
                   {story.headline}
                 </h3>
+                {!story.image_url && story.summary && (
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{story.summary}</p>
+                )}
+                {i < sideStories.length - 1 && <div className="h-px bg-white/10 mt-5" />}
               </a>
             ))}
           </div>
@@ -240,11 +246,12 @@ export default async function HomePage() {
         {latestStories.map((story: any) => (
           <a key={story.id} href={`/story/${story.slug}`} className="group block">
             {story.image_url && (
-              <div className="aspect-[16/10] overflow-hidden mb-3">
+              <div className="relative p-1 border border-white/20 mb-3">
+                <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                 <img
                   src={story.image_url}
                   alt=""
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                  className="w-full aspect-[16/10] object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                 />
               </div>
             )}
@@ -253,7 +260,7 @@ export default async function HomePage() {
                 {story.topic}
               </span>
               <span className="text-muted-foreground">◆</span>
-              <span className="text-muted-foreground">{story.source}</span>
+              <span className="text-muted-foreground">{story.image_attribution ?? story.source}</span>
             </div>
             <h3 className="text-xs font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors line-clamp-3">
               {story.headline}
@@ -299,7 +306,7 @@ export default async function HomePage() {
                   <h4 className="text-sm font-bold uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors line-clamp-2">
                     {story.headline}
                   </h4>
-                  <span className="text-xs text-muted-foreground mt-1 block">{story.source}</span>
+                  <span className="text-xs text-muted-foreground mt-1 block">{story.image_attribution ?? story.source}</span>
                 </a>
               ))}
             </div>
