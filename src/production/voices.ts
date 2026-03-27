@@ -29,10 +29,24 @@ export async function voiceAct(
     throw new Error("No dialogue turns to voice");
   }
 
-  // Assign voice IDs and strip any audio tags from text
+  // Supported ElevenLabs v3 audio tags — keep these, strip anything else
+  const SUPPORTED_TAGS = new Set([
+    "laughs", "sighs", "chuckles", "whispers", "excited", "sad",
+    "curious", "thoughtful", "surprised", "short pause", "long pause",
+    "clears throat", "exhales", "inhales deeply",
+  ]);
+
+  const cleanText = (text: string): string => {
+    return text.replace(/\[([^\]]+)\]/g, (match, tag) => {
+      const normalized = tag.trim().toLowerCase();
+      return SUPPORTED_TAGS.has(normalized) ? match : "";
+    }).replace(/\s{2,}/g, " ").trim();
+  };
+
+  // Assign voice IDs and clean text (keep supported tags, strip others)
   const dialogueWithVoices = dialogue.map((turn) => ({
     voice_id: VOICE_IDS[turn.voice] ?? VOICE_IDS.anchor,
-    text: turn.text.replace(/\[[\w\s]+\]\s*/g, "").trim(),
+    text: cleanText(turn.text),
   })).filter((d) => d.text.length > 0);
 
   // Calculate total character count

@@ -161,8 +161,9 @@ SPEAKER: Dialogue text here.
 Valid speakers: ANCHOR, CORRESPONDENT, DISTRICT_DESK
 
 IMPORTANT RULES:
-- Do NOT include any brackets, tags, or stage directions like [confidently] or [laughs]
-- Just write natural dialogue. The voice acting comes from the AI voices, not from tags.
+- Write with energy and emotion like NPR hosts. These are real people who care about their city.
+- Use these ElevenLabs audio tags naturally where they fit: [laughs], [sighs], [chuckles], [short pause], [long pause], [excited], [surprised], [whispers], [thoughtful]
+- Do NOT invent other tags. Only use the ones listed above.
 - Use dashes for interruptions: "So what you're saying is—"
 - Use ellipses for trailing: "And that means..."
 - Write numbers spelled out: "one hundred ninety-eight thousand dollars" not "$198,000"
@@ -170,7 +171,8 @@ IMPORTANT RULES:
 - NEVER say "according to Perigon" or "according to OpenStates" or "according to FRED"
 - These are data pipelines, not sources. Cite the REAL source: "according to the Milwaukee Journal Sentinel", "according to the Bureau of Labor Statistics", "according to the Wisconsin State Legislature", "according to Congress dot gov"
 - When citing economic data, say "Federal Reserve data shows" or "Bureau of Labor Statistics reports"
-- When citing bills, say "the Wisconsin State Senate" or "the U.S. House" — not "OpenStates"`;
+- When citing bills, say "the Wisconsin State Senate" or "the U.S. House" — not "OpenStates"
+- Make the conversation feel alive. The hosts should react to each other. "Wait, really?" "That's a big deal." "I did not see that coming." Think Morning Edition, not a textbook.`;
 
   let actPrompt = "";
 

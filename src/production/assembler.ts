@@ -8,15 +8,26 @@ export async function assembleEpisode(
   console.log(`[Assembler] Combining ${actAudioKeys.length} acts for ${episodeId}...`);
 
   // Fetch all act audio from R2
-  const chunks: ArrayBuffer[] = [];
+  const chunks: Uint8Array[] = [];
 
-  for (const key of actAudioKeys) {
+  for (let i = 0; i < actAudioKeys.length; i++) {
+    const key = actAudioKeys[i];
     const object = await env.MEDIA_BUCKET.get(key);
     if (!object) {
       console.error(`[Assembler] Missing audio: ${key}`);
       continue;
     }
-    const buffer = await object.arrayBuffer();
+    let buffer = new Uint8Array(await object.arrayBuffer());
+
+    // For acts after the first, strip the ID3v2 header to allow clean MP3 concatenation.
+    // ID3v2 starts with "ID3" (0x49, 0x44, 0x33). The header size is encoded in bytes 6-9.
+    if (i > 0 && buffer.length > 10 && buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) {
+      const headerSize = (buffer[6] << 21) | (buffer[7] << 14) | (buffer[8] << 7) | buffer[9];
+      const totalHeaderSize = headerSize + 10;
+      buffer = buffer.slice(totalHeaderSize);
+      console.log(`[Assembler] Stripped ${totalHeaderSize} byte ID3 header from act ${i + 1}`);
+    }
+
     chunks.push(buffer);
   }
 
@@ -24,12 +35,12 @@ export async function assembleEpisode(
     throw new Error("No audio chunks to assemble");
   }
 
-  // Concatenate MP3 buffers
+  // Concatenate MP3 frames
   const totalSize = chunks.reduce((sum, c) => sum + c.byteLength, 0);
   const combined = new Uint8Array(totalSize);
   let offset = 0;
   for (const chunk of chunks) {
-    combined.set(new Uint8Array(chunk), offset);
+    combined.set(chunk, offset);
     offset += chunk.byteLength;
   }
 
