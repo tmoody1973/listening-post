@@ -48,8 +48,19 @@ app.get("/api/newsroom/status", async (c) => {
   return res ?? c.json({ error: "Agent not found" }, 404);
 });
 
+// ─── Admin auth check ───────────────────────────────────────
+function requireAdmin(c: any): Response | null {
+  const key = c.req.header("X-Admin-Key") ?? c.req.query("key");
+  if (key !== c.env.ADMIN_KEY) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  return null;
+}
+
 // ─── Civic data trigger ─────────────────────────────────────
 app.post("/api/trigger/civic", async (c) => {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
   const { ingestCivicData } = await import("./ingestion/civic");
   const counts = await ingestCivicData(c.env);
   return c.json({ status: "civic ingestion complete", ...counts });
@@ -57,6 +68,8 @@ app.post("/api/trigger/civic", async (c) => {
 
 // ─── Manual triggers (dev) ──────────────────────────────────
 app.post("/api/trigger/ingest", async (c) => {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
   const { ingestFromPerigon } = await import("./ingestion/perigon");
   const { ingestFromCongress } = await import("./ingestion/congress");
   const { ingestFromFRED } = await import("./ingestion/fred");
@@ -160,6 +173,8 @@ app.post("/api/trigger/ingest", async (c) => {
 });
 
 app.post("/api/trigger/produce", async (c) => {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
   const edition = (c.req.query("edition") ?? "morning") as "morning" | "evening";
   const { buildShowRundown, generateActDialogue } = await import("./production/scriptwriter");
   const { voiceAct, voiceActFallbackTTS } = await import("./production/voices");
@@ -335,10 +350,9 @@ app.post("/api/trigger/produce", async (c) => {
 // ─── Public API endpoints ───────────────────────────────────
 app.get("/api/stories", async (c) => {
   const topic = c.req.query("topic");
-  const all = c.req.query("all");
-
-  // By default return published stories; ?all=true returns everything (dev)
-  const publishedFilter = all ? "" : "AND published_at IS NOT NULL";
+  // Show all stories — published filter removed since most stories
+  // are ingested without explicit publish step
+  const publishedFilter = "";
   let query = `SELECT * FROM stories WHERE 1=1 ${publishedFilter} ORDER BY created_at DESC LIMIT 20`;
   const params: string[] = [];
 

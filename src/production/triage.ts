@@ -96,7 +96,7 @@ No explanation. Just the array.`,
     }
 
     // Map scores back to stories (exclude skipped)
-    const validTopics = new Set(["housing", "economy", "education", "transit", "safety", "health", "environment", "politics"]);
+    const validTopics = new Set(["housing", "economy", "business", "education", "transit", "safety", "health", "environment", "politics"]);
 
     const skippedSet = new Set(skippedIds);
     const triaged: TriagedStory[] = stories
