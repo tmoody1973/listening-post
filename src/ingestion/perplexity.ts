@@ -183,24 +183,42 @@ Focus on: city government, county board, state legislature, housing, crime, educ
     source_name: string;
   }[];
 
-  const stories: RawStory[] = discovered.map((d, i) => ({
-    id: `perplexity-${Date.now()}-${i}`,
-    headline: d.headline,
-    summary: d.summary,
-    topic: d.topic,
-    source: "perplexity",
-    source_url: citations[i] ?? null,
-    image_url: images[i]?.imageUrl ?? null,
-    image_caption: null,
-    image_attribution: d.source_name,
-    sentiment_positive: null,
-    sentiment_negative: null,
-    content: null,
-    perigon_cluster_id: null,
-  }));
+  // Deduplicate: check if similar headlines already exist in D1
+  const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+
+  const stories: RawStory[] = [];
+  for (let i = 0; i < discovered.length; i++) {
+    const d = discovered[i];
+    const slug = slugify(d.headline);
+
+    // Check for existing story with same slug
+    const existing = await env.DB.prepare(
+      "SELECT id FROM stories WHERE slug = ? LIMIT 1"
+    ).bind(slug).first();
+
+    if (existing) {
+      console.log(`[Perplexity] Skipping duplicate: ${d.headline.slice(0, 50)}`);
+      continue;
+    }
+
+    stories.push({
+      id: `perplexity-${slug}`,
+      headline: d.headline,
+      summary: d.summary,
+      topic: d.topic,
+      source: "perplexity",
+      source_url: citations[i] ?? null,
+      image_url: images[i]?.imageUrl ?? null,
+      image_caption: null,
+      image_attribution: d.source_name,
+      sentiment_positive: null,
+      sentiment_negative: null,
+      content: null,
+      perigon_cluster_id: null,
+    });
+  }
 
   // Store in D1
-  const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
   const n = (v: unknown): string | number | null => v === undefined ? null : v as string | number | null;
 
   for (const story of stories) {

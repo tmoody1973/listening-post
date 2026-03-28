@@ -213,12 +213,14 @@ export class NewsroomAgent extends Agent<Env, NewsroomState> {
     this.setState({ ...this.state, status: "producing" });
 
     try {
-      // Get stories
+      // Get today's stories (prefer scored, fall back to recent)
+      // Only use stories from today to avoid repeating old content
       let storiesResult = await this.env.DB.prepare(
-        "SELECT * FROM stories WHERE relevance_score IS NOT NULL ORDER BY relevance_score DESC LIMIT 10"
-      ).all();
+        "SELECT * FROM stories WHERE relevance_score IS NOT NULL AND date(created_at) = ? ORDER BY relevance_score DESC LIMIT 10"
+      ).bind(today).all();
 
-      if ((storiesResult.results ?? []).length === 0) {
+      if ((storiesResult.results ?? []).length < 5) {
+        // Fall back to recent stories if not enough today
         storiesResult = await this.env.DB.prepare(
           "SELECT * FROM stories ORDER BY created_at DESC LIMIT 10"
         ).all();
