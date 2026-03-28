@@ -1,3 +1,5 @@
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://listening-post.tarikjmoody.workers.dev";
 
 export const revalidate = 30;
@@ -24,6 +26,7 @@ export default async function CityHallPage() {
   const meetings = data?.meetings ?? [];
   const legislation = data?.legislation ?? [];
   const permits = data?.permits ?? [];
+  const licenses = data?.licenses ?? [];
   const pressReleases = data?.pressReleases ?? [];
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -115,6 +118,65 @@ export default async function CityHallPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* NEW RESTAURANTS */}
+          {licenses.length > 0 && (
+            <>
+              <div className="h-px bg-white/20 mb-8" />
+              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-2">New Restaurants & Bars</h2>
+              <p className="text-sm text-muted-foreground mb-6">Recent food dealer and tavern license applications in Milwaukee</p>
+              <Accordion multiple className="space-y-2">
+                {licenses.map((lic: any) => (
+                  <AccordionItem key={lic.id} value={lic.id} className="border border-white/10 px-5">
+                    <AccordionTrigger className="py-4 hover:no-underline">
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-green-900/60 text-green-400">
+                            New
+                          </span>
+                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {lic.date}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-black uppercase tracking-tight leading-snug mt-1">
+                          {(lic.title ?? "").replace("New: ", "")}
+                        </h3>
+                        {lic.address && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{lic.address}</p>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      {lic.body ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                          {lic.body}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                          {lic.summary}
+                        </p>
+                      )}
+                      <div className="flex gap-4 text-xs">
+                        {lic.source_url && (
+                          <a
+                            href={lic.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[var(--color-coral)] hover:underline"
+                          >
+                            View Application PDF →
+                          </a>
+                        )}
+                        {lic.body_name && (
+                          <span className="text-muted-foreground">{lic.body_name}</span>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </>
           )}
 
           {/* PRESS RELEASES */}

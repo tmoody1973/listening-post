@@ -490,6 +490,73 @@ async function ingestPressReleases(env: Env): Promise<number> {
   }
 }
 
+// ─── Perplexity: Enrich New Restaurant Applications ─────────
+
+async function enrichNewRestaurants(env: Env): Promise<number> {
+  console.log("[Civic] Enriching new restaurant applications...");
+
+  const result = await env.DB.prepare(
+    `SELECT id, title, address, applicant, summary FROM civic_items
+     WHERE type = 'license' AND category = 'restaurant' AND source = 'lira'
+     AND (body IS NULL OR body = '')
+     ORDER BY date DESC LIMIT 10`
+  ).all();
+
+  const items = result.results ?? [];
+  if (items.length === 0) return 0;
+
+  let enriched = 0;
+
+  for (const item of items) {
+    const i = item as { id: string; title: string; address: string | null; applicant: string | null; summary: string | null };
+
+    try {
+      const response = await fetch(`${PERPLEXITY_BASE}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.PERPLEXITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "sonar",
+          messages: [
+            {
+              role: "system",
+              content: `You write short, friendly blurbs about new Milwaukee restaurants for a local news site. 2-3 sentences max. Mention what kind of food it might be (guess from the name if needed), the neighborhood, and anything interesting about the location. Be enthusiastic but factual. If you can't find info, write based on what you can infer from the name and address.`,
+            },
+            {
+              role: "user",
+              content: `New restaurant application in Milwaukee:\nBusiness: ${i.title.replace("New: ", "")}\nAddress: ${i.address ?? "Unknown"}\nApplicant: ${i.applicant ?? "Unknown"}\n\nWrite a 2-3 sentence blurb about this new restaurant.`,
+            },
+          ],
+          web_search_options: {
+            search_context_size: "low",
+            user_location: { latitude: 43.0389, longitude: -87.9065, country: "US" },
+          },
+          temperature: 0.4,
+        }),
+      });
+
+      if (!response.ok) continue;
+
+      const data = await response.json() as { choices: { message: { content: string } }[] };
+      const blurb = data.choices?.[0]?.message?.content ?? "";
+
+      if (blurb.length > 20) {
+        await env.DB.prepare(
+          `UPDATE civic_items SET body = ? WHERE id = ?`
+        ).bind(blurb, i.id).run();
+        enriched++;
+      }
+    } catch (error) {
+      console.error(`[Civic] Enrich failed for ${i.title}:`, error);
+    }
+  }
+
+  console.log(`[Civic] Enriched ${enriched} restaurant narratives`);
+  return enriched;
+}
+
 // ─── Main Export ─────────────────────────────────────────────
 
 export async function ingestCivicData(env: Env): Promise<{
@@ -520,8 +587,16 @@ export async function ingestCivicData(env: Env): Promise<{
     pressReleases: results[6].status === "fulfilled" ? results[6].value : 0,
   };
 
+  // Enrich new restaurants with Perplexity narratives
+  let restaurantsEnriched = 0;
+  try {
+    restaurantsEnriched = await enrichNewRestaurants(env);
+  } catch (error) {
+    console.error("[Civic] Restaurant enrichment failed:", error);
+  }
+
   const total = counts.meetings + counts.legislation + counts.permits + counts.licenses + counts.licenseApplications + counts.newRestaurants + counts.pressReleases;
-  console.log(`[Civic] Complete: ${total} civic items (${counts.meetings} meetings, ${counts.legislation} legislation, ${counts.permits} permits, ${counts.pressReleases} press releases)`);
+  console.log(`[Civic] Complete: ${total} civic items, ${restaurantsEnriched} restaurants enriched (${counts.meetings} meetings, ${counts.legislation} legislation, ${counts.permits} permits, ${counts.pressReleases} press releases)`);
 
   return counts;
 }
