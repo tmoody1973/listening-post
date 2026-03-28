@@ -437,7 +437,7 @@ async function ingestPressReleases(env: Env): Promise<number> {
           },
           {
             role: "user",
-            content: "Milwaukee Common Council press releases, Mayor Cavalier Johnson announcements, Milwaukee alderperson statements this week site:city.milwaukee.gov",
+            content: "Find the latest press releases from the Milwaukee Common Council at city.milwaukee.gov/CommonCouncil/News-Releases and from Milwaukee Mayor Cavalier Johnson. Include any alderperson statements from the past week. Return the most recent 5-8 items.",
           },
         ],
         search_recency_filter: "week",

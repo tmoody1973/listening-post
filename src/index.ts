@@ -459,11 +459,63 @@ app.get("/api/bill/:id", async (c) => {
   return c.json({ bill, story });
 });
 
-// Civic item detail
+// Civic item detail — enriches with Perplexity if no body exists
 app.get("/api/civic/:id", async (c) => {
   const id = decodeURIComponent(c.req.param("id"));
-  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first();
+  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
   if (!item) return c.json({ error: "Not found" }, 404);
+
+  // If no body yet, generate one with Perplexity
+  if (!item.body && item.title) {
+    try {
+      const response = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${c.env.PERPLEXITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "sonar",
+          messages: [
+            {
+              role: "system",
+              content: "You explain Milwaukee city legislation and civic items in plain language for residents. Write 3-4 paragraphs. First paragraph: what this is and what it does. Second: why it matters to Milwaukee residents. Third: what happens next. Be clear and specific.",
+            },
+            {
+              role: "user",
+              content: `Explain this Milwaukee civic item:\nTitle: ${item.title}\nType: ${item.matter_type ?? item.type}\nStatus: ${item.matter_status ?? "Unknown"}\nSponsor: ${item.sponsor_name ?? "N/A"}\nSummary: ${item.summary ?? "No summary"}\nFile: ${item.matter_file ?? "N/A"}`,
+            },
+          ],
+          web_search_options: { search_context_size: "medium", user_location: { latitude: 43.0389, longitude: -87.9065, country: "US" } },
+          temperature: 0.3,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json() as { choices: { message: { content: string } }[]; citations?: string[] };
+        const body = data.choices?.[0]?.message?.content ?? "";
+        const citations = data.citations ?? [];
+
+        if (body.length > 50) {
+          const sourcesJson = citations.length > 0
+            ? JSON.stringify(citations.map((url: string) => {
+                try { return { name: new URL(url).hostname.replace("www.", ""), url }; }
+                catch { return { name: url, url }; }
+              }))
+            : null;
+
+          await c.env.DB.prepare(
+            "UPDATE civic_items SET body = ?, source_url = COALESCE(source_url, ?) WHERE id = ?"
+          ).bind(body, sourcesJson, id).run();
+
+          item.body = body;
+        }
+      }
+    } catch (error) {
+      console.error("[Civic] On-demand enrichment failed:", error);
+    }
+  }
+
   return c.json({ item });
 });
 
