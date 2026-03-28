@@ -40,6 +40,7 @@ function Navbar() {
             <span className="text-sm font-black uppercase tracking-[0.3em]" style={{ color: "var(--color-coral)" }}>post</span>
           </a>
           <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            <a href="/city-hall" className="hover:text-foreground transition-colors">City Hall</a>
             <a href="/podcast" className="hover:text-foreground transition-colors">Podcast</a>
           </div>
         </div>

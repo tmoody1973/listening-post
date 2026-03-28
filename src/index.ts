@@ -48,6 +48,13 @@ app.get("/api/newsroom/status", async (c) => {
   return res ?? c.json({ error: "Agent not found" }, 404);
 });
 
+// ─── Civic data trigger ─────────────────────────────────────
+app.post("/api/trigger/civic", async (c) => {
+  const { ingestCivicData } = await import("./ingestion/civic");
+  const counts = await ingestCivicData(c.env);
+  return c.json({ status: "civic ingestion complete", ...counts });
+});
+
 // ─── Manual triggers (dev) ──────────────────────────────────
 app.post("/api/trigger/ingest", async (c) => {
   const { ingestFromPerigon } = await import("./ingestion/perigon");
@@ -436,6 +443,25 @@ app.get("/api/bill/:id", async (c) => {
   ).bind(id).first();
 
   return c.json({ bill, story });
+});
+
+// City Hall civic data
+app.get("/api/city-hall", async (c) => {
+  const [meetings, legislation, votes, permits, pressReleases] = await Promise.all([
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'meeting' ORDER BY date DESC LIMIT 20").all(),
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'legislation' ORDER BY date DESC LIMIT 20").all(),
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'vote' ORDER BY date DESC LIMIT 10").all(),
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'permit' ORDER BY created_at DESC LIMIT 15").all(),
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'press_release' ORDER BY date DESC LIMIT 10").all(),
+  ]);
+
+  return c.json({
+    meetings: meetings.results ?? [],
+    legislation: legislation.results ?? [],
+    votes: votes.results ?? [],
+    permits: permits.results ?? [],
+    pressReleases: pressReleases.results ?? [],
+  });
 });
 
 // Floor data — bills, floor actions, presidential actions, congressional record
