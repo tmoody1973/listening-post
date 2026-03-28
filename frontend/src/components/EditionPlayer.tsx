@@ -141,6 +141,7 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
   const progressPercent = totalDuration > 0 ? (totalElapsed / totalDuration) * 100 : 0;
 
   const editionLabel = edition === "morning" ? "Morning Edition" : "Evening Edition";
+  const dateLabel = new Date(date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   return (
     <div className="bg-zinc-900 border-b border-white/10">
@@ -194,7 +195,7 @@ export function EditionPlayer({ episodeId, edition, date, playlist, totalDuratio
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: "var(--color-coral)" }}>
-              {editionLabel}
+              {editionLabel} ◆ {dateLabel}
             </span>
             {actName && actName !== "Intro" && actName !== "Outro" && actName !== "Transition" && (
               <>

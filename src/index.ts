@@ -170,15 +170,15 @@ app.post("/api/trigger/produce", async (c) => {
 
   console.log(`[Produce] Starting ${edition} episode: ${episodeId}`);
 
-  // Step 1: Get recent stories from D1 (prefer scored, fall back to recent)
+  // Step 1: Get today's stories not yet used in an episode
   let storiesResult = await c.env.DB.prepare(
-    `SELECT * FROM stories WHERE relevance_score IS NOT NULL ORDER BY relevance_score DESC LIMIT 10`
-  ).all();
+    `SELECT * FROM stories WHERE episode_id IS NULL AND date(created_at) = ? ORDER BY relevance_score DESC LIMIT 10`
+  ).bind(today).all();
 
-  // Fallback: if no scored stories, grab the most recent ones
-  if ((storiesResult.results ?? []).length === 0) {
+  // Fallback: if not enough today, get any unused stories
+  if ((storiesResult.results ?? []).length < 5) {
     storiesResult = await c.env.DB.prepare(
-      `SELECT * FROM stories ORDER BY created_at DESC LIMIT 10`
+      `SELECT * FROM stories WHERE episode_id IS NULL ORDER BY created_at DESC LIMIT 10`
     ).all();
   }
 
@@ -568,4 +568,119 @@ app.get("/", (c) => {
   });
 });
 
-export default app;
+// Cron trigger handler — backup scheduling for the NewsroomAgent
+const worker = {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    const hour = new Date(event.scheduledTime).getUTCHours();
+    console.log(`[Cron] Triggered at UTC hour ${hour}`);
+
+    if (hour === 8) {
+      // 3 AM CT — morning ingestion
+      const { ingestFromPerigon } = await import("./ingestion/perigon");
+      const { ingestFromCongress } = await import("./ingestion/congress");
+      const { ingestFromFRED } = await import("./ingestion/fred");
+      const { ingestFromOpenStates } = await import("./ingestion/openstates");
+      const { discoverNewsViaPerplexity } = await import("./ingestion/perplexity");
+      const { ingestCongressionalRecordArticles } = await import("./ingestion/congressional-record");
+      const { ingestCivicData } = await import("./ingestion/civic");
+      const { triageStories } = await import("./production/triage");
+      const { enrichStories } = await import("./production/enrich");
+      const { generateMissingImages } = await import("./production/images");
+
+      const results = await Promise.allSettled([
+        ingestFromPerigon(env), ingestFromCongress(env), ingestFromFRED(env),
+        ingestFromOpenStates(env), discoverNewsViaPerplexity(env),
+        ingestCongressionalRecordArticles(env), ingestCivicData(env),
+      ]);
+
+      const allStories: any[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled" && Array.isArray(r.value)) allStories.push(...r.value);
+      }
+
+      await triageStories(env, allStories).catch(() => {});
+      await enrichStories(env).catch(() => {});
+      await generateMissingImages(env).catch(() => {});
+      console.log(`[Cron] Morning ingestion complete: ${allStories.length} stories`);
+    }
+
+    if (hour === 10 || hour === 22) {
+      // 5 AM CT or 5 PM CT — episode production
+      const edition = hour === 10 ? "morning" : "evening";
+      const { buildShowRundown, generateActDialogue } = await import("./production/scriptwriter");
+      const { voiceAct, voiceActFallbackTTS } = await import("./production/voices");
+      const { assembleEpisode, generateTranscript } = await import("./production/assembler");
+
+      const today = new Date().toISOString().split("T")[0];
+      const episodeId = `${edition}-${today}`;
+
+      // Get today's unused stories — exclude stories already in an episode
+      let storiesResult = await env.DB.prepare(
+        "SELECT * FROM stories WHERE episode_id IS NULL AND date(created_at) = ? ORDER BY relevance_score DESC LIMIT 10"
+      ).bind(today).all();
+      if ((storiesResult.results ?? []).length < 5) {
+        // On slow days (weekends), pull from civic items too
+        storiesResult = await env.DB.prepare(
+          "SELECT * FROM stories WHERE episode_id IS NULL ORDER BY created_at DESC LIMIT 10"
+        ).all();
+      }
+
+      const stories = (storiesResult.results ?? []).map((s: any) => ({ ...s, relevance_score: s.relevance_score ?? 0.3, research_package: null }));
+      if (stories.length === 0) { console.log("[Cron] No stories for production"); return; }
+
+      const rundown = await buildShowRundown(edition as any, stories as any, env);
+      const acts: any[] = [];
+      for (let i = 0; i < rundown.acts.length; i++) {
+        const dialogue = await generateActDialogue(rundown.acts[i], edition as any, i, env);
+        acts.push({ id: rundown.acts[i].id, title: rundown.acts[i].title, dialogue, audioR2Key: null, durationSeconds: null, status: dialogue.length > 0 ? "scripted" : "failed" });
+      }
+
+      const actAudioKeys: string[] = [];
+      for (const act of acts) {
+        if (act.status !== "scripted") continue;
+        try {
+          const { audioBuffer } = await voiceAct(env, act.dialogue, episodeId, act.id);
+          const r2Key = `audio/${episodeId}/${act.id}.mp3`;
+          await env.MEDIA_BUCKET.put(r2Key, audioBuffer, { httpMetadata: { contentType: "audio/mpeg" } });
+          act.audioR2Key = r2Key; act.status = "voiced"; actAudioKeys.push(r2Key);
+        } catch {
+          try {
+            const { audioBuffer } = await voiceActFallbackTTS(env, act.dialogue, episodeId, act.id);
+            const r2Key = `audio/${episodeId}/${act.id}.mp3`;
+            await env.MEDIA_BUCKET.put(r2Key, audioBuffer, { httpMetadata: { contentType: "audio/mpeg" } });
+            act.audioR2Key = r2Key; act.status = "voiced"; actAudioKeys.push(r2Key);
+          } catch { act.status = "failed"; }
+        }
+      }
+
+      if (actAudioKeys.length > 0) {
+        const assembled = await assembleEpisode(env, episodeId, actAudioKeys);
+        const transcript = generateTranscript(acts);
+        const totalDuration = assembled.actDurations.reduce((s, d) => s + d, 0);
+        await env.DB.prepare(
+          `INSERT OR REPLACE INTO episodes (id, edition, date, status, audio_r2_key, transcript, duration_seconds, segment_count, segments_json, story_ids_json, published_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+        ).bind(episodeId, edition, today, "published", assembled.finalR2Key, transcript, totalDuration, acts.length,
+          JSON.stringify(acts.map((a: any) => ({ id: a.id, title: a.title, duration: a.durationSeconds, r2Key: a.audioR2Key }))),
+          JSON.stringify(stories.map((s: any) => s.id)),
+        ).run();
+        console.log(`[Cron] ${episodeId} published. Duration: ${totalDuration}s`);
+      }
+    }
+
+    if (hour === 18) {
+      // 1 PM CT — afternoon ingestion (same as morning)
+      const { ingestFromPerigon } = await import("./ingestion/perigon");
+      const { discoverNewsViaPerplexity } = await import("./ingestion/perplexity");
+      const { triageStories } = await import("./production/triage");
+
+      const results = await Promise.allSettled([ingestFromPerigon(env), discoverNewsViaPerplexity(env)]);
+      const stories: any[] = [];
+      for (const r of results) { if (r.status === "fulfilled" && Array.isArray(r.value)) stories.push(...r.value); }
+      await triageStories(env, stories).catch(() => {});
+      console.log(`[Cron] Afternoon ingestion: ${stories.length} stories`);
+    }
+  },
+};
+
+export default worker;

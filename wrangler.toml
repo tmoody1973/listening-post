@@ -38,3 +38,12 @@ index_name = "story-embeddings"
 # ─── Workers AI ───────────────────────────────────────────
 [ai]
 binding = "AI"
+
+# ─── Cron Triggers (backup for agent scheduling) ─────────
+[triggers]
+crons = [
+  "0 8 * * *",   # 3 AM CT — morning ingestion
+  "0 10 * * *",  # 5 AM CT — morning episode production
+  "0 18 * * *",  # 1 PM CT — afternoon ingestion
+  "0 22 * * *",  # 5 PM CT — evening episode production
+]
