@@ -447,11 +447,12 @@ app.get("/api/bill/:id", async (c) => {
 
 // City Hall civic data
 app.get("/api/city-hall", async (c) => {
-  const [meetings, legislation, votes, permits, pressReleases] = await Promise.all([
+  const [meetings, legislation, votes, permits, licenses, pressReleases] = await Promise.all([
     c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'meeting' ORDER BY date DESC LIMIT 20").all(),
     c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'legislation' ORDER BY date DESC LIMIT 20").all(),
     c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'vote' ORDER BY date DESC LIMIT 10").all(),
     c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'permit' ORDER BY created_at DESC LIMIT 15").all(),
+    c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'license' AND category = 'restaurant' ORDER BY date DESC LIMIT 20").all(),
     c.env.DB.prepare("SELECT * FROM civic_items WHERE type = 'press_release' ORDER BY date DESC LIMIT 10").all(),
   ]);
 
@@ -460,6 +461,7 @@ app.get("/api/city-hall", async (c) => {
     legislation: legislation.results ?? [],
     votes: votes.results ?? [],
     permits: permits.results ?? [],
+    licenses: licenses.results ?? [],
     pressReleases: pressReleases.results ?? [],
   });
 });

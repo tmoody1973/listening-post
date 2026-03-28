@@ -177,6 +177,245 @@ async function ingestPermits(env: Env): Promise<number> {
   }
 }
 
+// ─── LIRA: New Restaurant/Business Applications ─────────────
+
+const LIRA_URL = "https://itmdapps.milwaukee.gov/LiraPublic/applicationsearch.jsp";
+
+async function ingestNewApplications(env: Env): Promise<number> {
+  console.log("[Civic] Fetching new restaurant applications from LIRA...");
+
+  try {
+    // Fetch Food Dealer - Restaurant applications (type 262)
+    const response = await fetch(`${LIRA_URL}?App_By_LicenseType=262&q=App_By_LicenseType&pgSize=100`);
+    if (!response.ok) throw new Error(`LIRA ${response.status}`);
+
+    const html = await response.text();
+
+    // Parse data rows: <td>type</td><td>business</td><td>address</td><td>status</td><td>date</td><td>paid</td>
+    const dataRowRegex = /<tr><td><a[^>]*>Show Details<\/a>\s*<\/td><td>(.*?)<\/td><td>(.*?)<\/td><td>(.*?)<\/td><td>(.*?)<\/td><td>(.*?)<\/td><td>(.*?)<\/td><\/tr>/g;
+    const detailRegex = /<tr class='info'><td colspan='\d+'><div>(.*?)<\/div><\/td><\/tr>/gs;
+
+    const dataRows: { licType: string; business: string; address: string; status: string; date: string }[] = [];
+    let match;
+    while ((match = dataRowRegex.exec(html)) !== null) {
+      dataRows.push({
+        licType: match[1],
+        business: match[2],
+        address: match[3],
+        status: match[4],
+        date: match[5],
+      });
+    }
+
+    const details: string[] = [];
+    while ((match = detailRegex.exec(html)) !== null) {
+      details.push(match[1]);
+    }
+
+    let stored = 0;
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      if (!row.status.toUpperCase().includes("APPLICATION")) continue;
+
+      const detail = details[i] ?? "";
+
+      // Extract trade name, district, PDF link from detail
+      const tradeMatch = detail.match(/Trade Name\s*<\/span>:\s*(.*?)</);
+      const districtMatch = detail.match(/Aldermanic District<\/span>:\s*(\d+)/);
+      const pdfMatch = detail.match(/ApplAttachServlet\?id=(\d+)/);
+      const premiseMatch = detail.match(/Premise Description<\/span>:\s*(.*?)</);
+
+      const tradeName = tradeMatch?.[1]?.trim();
+      const displayName = tradeName || row.business;
+      const district = districtMatch?.[1];
+      const pdfId = pdfMatch?.[1];
+      const premise = premiseMatch?.[1]?.trim();
+
+      // Parse date (MM/DD/YYYY -> YYYY-MM-DD)
+      const dateParts = row.date.split("/");
+      const isoDate = dateParts.length === 3
+        ? `${dateParts[2]}-${dateParts[0].padStart(2, "0")}-${dateParts[1].padStart(2, "0")}`
+        : row.date;
+
+      const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+      const id = `lira-app-${slug}-${isoDate}`;
+
+      const pdfUrl = pdfId
+        ? `https://itmdapps.milwaukee.gov/LiraPublic/ApplAttachServlet?id=${pdfId}`
+        : null;
+
+      try {
+        await env.DB.prepare(
+          `INSERT OR IGNORE INTO civic_items (id, type, title, summary, date, source, source_url, category, address, applicant, permit_type, body_name, tier, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          id, "license",
+          `New: ${displayName}`,
+          `New ${row.licType} application for ${displayName} at ${row.address}${district ? ` (District ${district})` : ""}${premise ? `. ${premise}` : ""}`,
+          isoDate,
+          "lira",
+          n(pdfUrl),
+          "restaurant",
+          n(row.address),
+          n(row.business),
+          n(row.licType),
+          n(district ? `District ${district}` : null),
+          1,
+        ).run();
+        stored++;
+      } catch { /* ignore dupes */ }
+    }
+
+    console.log(`[Civic] Stored ${stored} new restaurant applications`);
+    return stored;
+  } catch (error) {
+    console.error("[Civic] LIRA scrape failed:", error);
+    return 0;
+  }
+}
+
+// ─── Legistar: License Applications (rich detail) ───────────
+
+async function ingestLicenseApplications(env: Env): Promise<number> {
+  console.log("[Civic] Fetching license applications from Legistar...");
+
+  try {
+    // Get recent license-related matters
+    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const matters = await legistarFetch<any[]>(
+      `/matters?$filter=MatterLastModifiedUtc ge datetime'${since.toISOString()}'&$orderby=MatterLastModifiedUtc desc&$top=100`
+    );
+
+    // Filter for license applications
+    const licenseMatters = matters.filter((m: any) => {
+      const title = (m.MatterTitle ?? "").toLowerCase();
+      const type = (m.MatterTypeName ?? "").toLowerCase();
+      return type.includes("license") ||
+        title.includes("food dealer") ||
+        title.includes("tavern") ||
+        title.includes("restaurant") ||
+        title.includes("cafe") ||
+        title.includes("bakery") ||
+        title.includes("brewery") ||
+        title.includes("coffee") ||
+        title.includes("liquor") ||
+        title.includes("class b") ||
+        title.includes("class a");
+    });
+
+    let stored = 0;
+    for (const matter of licenseMatters) {
+      const id = `legistar-license-${matter.MatterId}`;
+      const title = matter.MatterTitle ?? "License Application";
+
+      // Parse business name and address from MatterTitle
+      // Typical format: "Ahmad H. Issa, Agent for Aadam Food LLC, Food Dealer License at 4402 W Center St"
+      const isFood = title.toLowerCase().includes("food") || title.toLowerCase().includes("restaurant") || title.toLowerCase().includes("bakery") || title.toLowerCase().includes("cafe");
+      const isTavern = title.toLowerCase().includes("tavern") || title.toLowerCase().includes("class b") || title.toLowerCase().includes("liquor");
+
+      try {
+        await env.DB.prepare(
+          `INSERT OR REPLACE INTO civic_items (id, type, title, summary, date, source, source_url, category, matter_file, matter_type, matter_status, sponsor_name, tier, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          id, "license",
+          title,
+          `${matter.MatterTypeName ?? "License"} — ${matter.MatterStatusName ?? "Pending"}. Sponsored by ${matter.MatterSponsorName ?? "N/A"}.`,
+          n(matter.MatterIntroDate?.split("T")[0] ?? isoDate(new Date())),
+          "legistar",
+          n(matter.MatterGuid ? `https://milwaukee.legistar.com/LegislationDetail.aspx?ID=${matter.MatterId}&GUID=${matter.MatterGuid}` : null),
+          isFood ? "restaurant" : isTavern ? "tavern" : "license",
+          n(matter.MatterFile),
+          n(matter.MatterTypeName),
+          n(matter.MatterStatusName),
+          n(matter.MatterSponsorName),
+          1,
+        ).run();
+        stored++;
+      } catch { /* ignore dupes */ }
+    }
+
+    console.log(`[Civic] Stored ${stored} license applications from Legistar`);
+    return stored;
+  } catch (error) {
+    console.error("[Civic] License applications failed:", error);
+    return 0;
+  }
+}
+
+// ─── ArcGIS: Business Licenses ──────────────────────────────
+
+const ARCGIS_BASE = "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/regulation/license/MapServer";
+const LICENSE_LAYERS = [
+  { id: 0, name: "Alcohol Licenses", category: "tavern" },
+  { id: 9, name: "Food Licenses", category: "restaurant" },
+  { id: 8, name: "Public Entertainment", category: "entertainment" },
+];
+
+async function ingestLicenses(env: Env): Promise<number> {
+  console.log("[Civic] Fetching recently granted licenses from ArcGIS...");
+
+  let totalStored = 0;
+
+  for (const layer of LICENSE_LAYERS) {
+    try {
+      // Get licenses with recent effective dates, sorted newest first
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const params = new URLSearchParams({
+        where: `EFFECTIVE_DATE > ${sevenDaysAgo}`,
+        outFields: "OBJECTID,TRADE_NAME,CORP_NAME,LICENSEE,ENTITY_ADDRESS,ALD_DIST,PROFESSION_FULL_NAME,EFFECTIVE_DATE,GRANTED_DATE",
+        returnGeometry: "false",
+        orderByFields: "EFFECTIVE_DATE DESC",
+        resultRecordCount: "30",
+        f: "json",
+      });
+
+      const response = await fetch(`${ARCGIS_BASE}/${layer.id}/query?${params}`);
+      if (!response.ok) continue;
+
+      const data = await response.json() as { features?: { attributes: Record<string, any> }[] };
+
+      for (const feature of data.features ?? []) {
+        const a = feature.attributes;
+        const id = `arcgis-license-${layer.id}-${a.OBJECTID}`;
+        const tradeName = a.TRADE_NAME ?? a.CORP_NAME ?? "Unknown";
+        const address = a.ENTITY_ADDRESS ?? "";
+        const licenseType = a.PROFESSION_FULL_NAME ?? layer.name;
+        // ArcGIS returns dates as epoch milliseconds
+        const effDate = a.EFFECTIVE_DATE
+          ? new Date(typeof a.EFFECTIVE_DATE === "number" ? a.EFFECTIVE_DATE : Date.parse(a.EFFECTIVE_DATE)).toISOString().split("T")[0]
+          : isoDate(new Date());
+        const district = a.ALD_DIST;
+
+        try {
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO civic_items (id, type, title, summary, date, source, source_url, category, address, applicant, permit_type, tier, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+          ).bind(
+            id, "license",
+            `${tradeName} — ${licenseType}`,
+            `${licenseType} for ${tradeName} at ${address}${district ? ` (District ${district})` : ""}`,
+            effDate,
+            "arcgis",
+            null,
+            layer.category,
+            n(address),
+            n(a.LICENSEE),
+            n(licenseType),
+            1,
+          ).run();
+          totalStored++;
+        } catch { /* ignore dupes */ }
+      }
+    } catch (error) {
+      console.error(`[Civic] ArcGIS layer ${layer.id} (${layer.name}) failed:`, error);
+    }
+  }
+
+  console.log(`[Civic] Stored ${totalStored} licenses from ArcGIS (food + alcohol + entertainment)`);
+  return totalStored;
+}
+
 // ─── Press Releases via Perplexity ──────────────────────────
 
 async function ingestPressReleases(env: Env): Promise<number> {
@@ -265,6 +504,9 @@ export async function ingestCivicData(env: Env): Promise<{
     ingestMeetings(env),
     ingestLegislation(env),
     ingestPermits(env),
+    ingestLicenses(env),
+    ingestLicenseApplications(env),
+    ingestNewApplications(env),
     ingestPressReleases(env),
   ]);
 
@@ -272,10 +514,13 @@ export async function ingestCivicData(env: Env): Promise<{
     meetings: results[0].status === "fulfilled" ? results[0].value : 0,
     legislation: results[1].status === "fulfilled" ? results[1].value : 0,
     permits: results[2].status === "fulfilled" ? results[2].value : 0,
-    pressReleases: results[3].status === "fulfilled" ? results[3].value : 0,
+    licenses: results[3].status === "fulfilled" ? results[3].value : 0,
+    licenseApplications: results[4].status === "fulfilled" ? results[4].value : 0,
+    newRestaurants: results[5].status === "fulfilled" ? results[5].value : 0,
+    pressReleases: results[6].status === "fulfilled" ? results[6].value : 0,
   };
 
-  const total = counts.meetings + counts.legislation + counts.permits + counts.pressReleases;
+  const total = counts.meetings + counts.legislation + counts.permits + counts.licenses + counts.licenseApplications + counts.newRestaurants + counts.pressReleases;
   console.log(`[Civic] Complete: ${total} civic items (${counts.meetings} meetings, ${counts.legislation} legislation, ${counts.permits} permits, ${counts.pressReleases} press releases)`);
 
   return counts;
