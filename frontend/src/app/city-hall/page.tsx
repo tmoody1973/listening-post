@@ -1,4 +1,4 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { RestaurantList } from "@/components/RestaurantList";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://listening-post.tarikjmoody.workers.dev";
 
@@ -62,55 +62,46 @@ export default async function CityHallPage() {
         </div>
       </div>
 
-      {/* ─── NEW RESTAURANTS & BARS ────────────────────────── */}
-      {licenses.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-2">
-            New Restaurants & Bars
-          </h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Recent food dealer and tavern license applications
-          </p>
-          <Accordion multiple className="space-y-2">
-            {licenses.map((lic: any) => (
-              <AccordionItem key={lic.id} value={lic.id} className="border border-white/10 px-5">
-                <AccordionTrigger className="py-4 hover:no-underline">
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="inline-block px-2 py-0.5 text-xs font-bold uppercase tracking-wide bg-green-900/60 text-green-400">
-                        New
-                      </span>
-                      <span className="text-xs text-muted-foreground">{lic.date}</span>
-                      {lic.body_name && (
-                        <span className="text-xs text-muted-foreground">{lic.body_name}</span>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-black uppercase tracking-tight leading-snug mt-1">
-                      {(lic.title ?? "").replace("New: ", "")}
-                    </h3>
-                    {lic.address && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{lic.address}</p>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-5">
-                  {lic.body ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">{lic.body}</p>
-                  ) : lic.summary ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">{lic.summary}</p>
-                  ) : null}
-                  {lic.source_url && (
-                    <a href={lic.source_url} target="_blank" rel="noopener noreferrer"
-                       className="text-sm text-[var(--color-coral)] hover:underline">
-                      View Application →
-                    </a>
+      {/* ─── TWO COLUMN: FROM CITY HALL + NEW RESTAURANTS ───── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+        {/* Left: From City Hall (Press Releases) */}
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-6">From City Hall</h2>
+          {pressReleases.length > 0 ? (
+            <div className="space-y-5">
+              {pressReleases.map((pr: any) => (
+                <a key={pr.id} href={`/legislation/${encodeURIComponent(pr.id)}`}
+                   className="block border border-white/10 p-5 hover:border-[var(--color-coral)]/50 transition-colors group">
+                  <h3 className="text-base font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
+                    {pr.title}
+                  </h3>
+                  {pr.summary && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{pr.summary}</p>
                   )}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
-      )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {pr.sponsor_name && `${pr.sponsor_name} ◆ `}{pr.date}
+                  </p>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No recent press releases</p>
+          )}
+        </div>
+
+        {/* Right: New Restaurants & Bars */}
+        {licenses.length > 0 && (
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight mb-2">
+              New Restaurants & Bars
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Recent license applications
+            </p>
+            <RestaurantList licenses={licenses} />
+          </div>
+        )}
+      </div>
 
       <div className="h-px bg-white/20 mb-10" />
 
@@ -133,7 +124,7 @@ export default async function CityHallPage() {
               ) : (
                 <div className="space-y-4">
                   {ordinances.slice(0, 5).map((item: any) => (
-                    <a key={item.id} href={item.source_url ?? "#"} target="_blank" rel="noopener noreferrer" className="block group">
+                    <a key={item.id} href={`/legislation/${encodeURIComponent(item.id)}`} className="block group">
                       <div className="flex items-center gap-2 mb-1">
                         {item.matter_file && <span className="text-xs font-bold text-muted-foreground">{item.matter_file}</span>}
                         {item.matter_status && (
@@ -162,7 +153,7 @@ export default async function CityHallPage() {
               ) : (
                 <div className="space-y-4">
                   {resolutions.slice(0, 5).map((item: any) => (
-                    <a key={item.id} href={item.source_url ?? "#"} target="_blank" rel="noopener noreferrer" className="block group">
+                    <a key={item.id} href={`/legislation/${encodeURIComponent(item.id)}`} className="block group">
                       <div className="flex items-center gap-2 mb-1">
                         {item.matter_file && <span className="text-xs font-bold text-muted-foreground">{item.matter_file}</span>}
                         {item.matter_status && (
@@ -236,8 +227,7 @@ export default async function CityHallPage() {
           {keyMeetings.length > 0 && (
             <div className="space-y-3 mb-6">
               {keyMeetings.map((meeting: any) => (
-                <a key={meeting.id} href={meeting.source_url ?? meeting.agenda_url ?? "#"}
-                   target="_blank" rel="noopener noreferrer"
+                <a key={meeting.id} href={`/legislation/${encodeURIComponent(meeting.id)}`}
                    className="block border border-white/10 p-4 hover:border-[var(--color-coral)]/50 transition-colors group">
                   <span className="inline-block px-2 py-0.5 text-xs font-bold uppercase tracking-wide bg-amber-900/60 text-amber-400 mb-2">
                     Key
@@ -274,29 +264,7 @@ export default async function CityHallPage() {
         </div>
       </div>
 
-      {/* ─── FROM CITY HALL (Press Releases) ────────────────── */}
-      {pressReleases.length > 0 && (
-        <section className="mb-12">
-          <div className="h-px bg-white/20 mb-8" />
-          <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-6">From City Hall</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pressReleases.map((pr: any) => (
-              <a key={pr.id} href={pr.source_url ?? "#"} target="_blank" rel="noopener noreferrer"
-                 className="block border border-white/10 p-5 hover:border-[var(--color-coral)]/50 transition-colors group">
-                <h3 className="text-base font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
-                  {pr.title}
-                </h3>
-                {pr.summary && (
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{pr.summary}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  {pr.sponsor_name && `${pr.sponsor_name} ◆ `}{pr.date}
-                </p>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Press releases already shown at top */}
 
       {/* Back */}
       <div className="mt-12">

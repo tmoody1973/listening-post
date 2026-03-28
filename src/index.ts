@@ -459,6 +459,14 @@ app.get("/api/bill/:id", async (c) => {
   return c.json({ bill, story });
 });
 
+// Civic item detail
+app.get("/api/civic/:id", async (c) => {
+  const id = decodeURIComponent(c.req.param("id"));
+  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first();
+  if (!item) return c.json({ error: "Not found" }, 404);
+  return c.json({ item });
+});
+
 // City Hall civic data
 app.get("/api/city-hall", async (c) => {
   const [meetings, legislation, votes, permits, licenses, pressReleases] = await Promise.all([
@@ -688,11 +696,15 @@ const worker = {
       const { discoverNewsViaPerplexity } = await import("./ingestion/perplexity");
       const { triageStories } = await import("./production/triage");
 
-      const results = await Promise.allSettled([ingestFromPerigon(env), discoverNewsViaPerplexity(env)]);
+      const { ingestCivicData } = await import("./ingestion/civic");
+
+      const results = await Promise.allSettled([
+        ingestFromPerigon(env), discoverNewsViaPerplexity(env), ingestCivicData(env),
+      ]);
       const stories: any[] = [];
       for (const r of results) { if (r.status === "fulfilled" && Array.isArray(r.value)) stories.push(...r.value); }
       await triageStories(env, stories).catch(() => {});
-      console.log(`[Cron] Afternoon ingestion: ${stories.length} stories`);
+      console.log(`[Cron] Afternoon ingestion: ${stories.length} stories + civic data`);
     }
   },
 };
