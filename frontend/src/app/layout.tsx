@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
-import { AgentationDev } from "@/components/AgentationDev";
 import { PlayerBar } from "@/components/PlayerBar";
 
 const barlow = Barlow_Condensed({
@@ -98,7 +97,6 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
-        <AgentationDev />
       </body>
     </html>
   );
