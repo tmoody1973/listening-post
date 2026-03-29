@@ -33,7 +33,9 @@ export default async function CityHallPage() {
 
   const meetings = data?.meetings ?? [];
   const legislation = data?.legislation ?? [];
-  const licenses = data?.licenses ?? [];
+  const rawLicenses = data?.licenses ?? [];
+  const licenses = rawLicenses.map(({ id, title, address, date, body, summary, source_url, body_name }: any) =>
+    ({ id, title, address, date, body, summary, source_url, body_name }));
   const pressReleases = data?.pressReleases ?? [];
 
   // Separate zoning/development items

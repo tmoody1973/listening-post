@@ -18,17 +18,11 @@ export default async function HomePage() {
     fetchEpisodes(),
   ]);
 
-  // Find episode with manifest
-  let latestEpisode = null;
-  let manifest = null;
-  for (const ep of episodes) {
-    const m = await fetchManifest(ep.id);
-    if (m?.playlist) {
-      latestEpisode = ep;
-      manifest = m;
-      break;
-    }
-  }
+  // Find episode with manifest (parallel fetch)
+  const manifests = await Promise.all(episodes.map((ep: any) => fetchManifest(ep.id)));
+  const manifestIdx = manifests.findIndex((m: any) => m?.playlist);
+  const latestEpisode = manifestIdx >= 0 ? episodes[manifestIdx] : null;
+  const manifest = manifestIdx >= 0 ? manifests[manifestIdx] : null;
 
   // Separate "What Congress Did" stories from regular news
   const congressDigest = stories.filter((s: any) => s.headline?.startsWith("What Congress Did"));

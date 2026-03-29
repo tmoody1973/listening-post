@@ -4,20 +4,22 @@ import { StickyPlayer } from "./EditionPlayer";
 export async function PlayerBar() {
   const episodes = await fetchEpisodes();
 
-  // Find first episode with a manifest
-  for (const ep of episodes) {
-    const manifest = await fetchManifest(ep.id);
-    if (manifest?.playlist) {
-      return (
-        <StickyPlayer
-          episodeId={ep.id}
-          edition={ep.edition}
-          date={ep.date}
-          playlist={manifest.playlist}
-          totalDuration={manifest.totalDurationSeconds}
-        />
-      );
-    }
+  // Parallel manifest fetch
+  const manifests = await Promise.all(episodes.map((ep: any) => fetchManifest(ep.id)));
+  const idx = manifests.findIndex((m: any) => m?.playlist);
+
+  if (idx >= 0) {
+    const ep = episodes[idx];
+    const manifest = manifests[idx];
+    return (
+      <StickyPlayer
+        episodeId={ep.id}
+        edition={ep.edition}
+        date={ep.date}
+        playlist={manifest.playlist}
+        totalDuration={manifest.totalDurationSeconds}
+      />
+    );
   }
 
   return null;

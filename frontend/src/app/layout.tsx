@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { PlayerBar } from "@/components/PlayerBar";
 
 const inter = Inter({
@@ -88,7 +89,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
-        <PlayerBar />
+        <Suspense fallback={<div className="h-[52px] bg-zinc-900 border-b border-white/10" />}>
+          <PlayerBar />
+        </Suspense>
         <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
           {children}
         </main>
