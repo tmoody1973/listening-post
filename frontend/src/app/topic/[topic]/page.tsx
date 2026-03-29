@@ -4,8 +4,7 @@ export const revalidate = 30;
 
 const TOPIC_DESCRIPTIONS: Record<string, string> = {
   housing: "Zoning, rent, building permits, real estate, and homelessness in Milwaukee",
-  economy: "Jobs, wages, taxes, budget, trade, and economic development",
-  business: "Companies, hiring, startups, corporate news, and local business",
+  economy: "Jobs, wages, taxes, budget, business, trade, and economic development",
   education: "Schools, universities, MPS, UW system, and student issues",
   transit: "Roads, buses, MCTS, streetcar, highways, and infrastructure",
   safety: "Police, courts, criminal justice reform, and public safety policy",

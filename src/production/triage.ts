@@ -29,13 +29,14 @@ export async function triageStories(env: Env, stories: RawStory[]): Promise<Tria
             role: "system",
             content: `You are a news editor for a Milwaukee, Wisconsin news platform covering local, state, and national news. For each story, assign:
 1. relevance: 0.0-1.0 score (0.8+ = Milwaukee/WI local, 0.6-0.8 = WI/Midwest, 0.4-0.6 = national with local impact, 0.2-0.4 = national policy, below 0.2 = not relevant)
-2. topic: EXACTLY one of: housing, economy, business, education, transit, safety, health, environment, politics
+2. topic: EXACTLY one of: housing, economy, education, transit, safety, health, environment, politics
+NOTE: "business" stories should be classified as "economy" — we combine business and economy into one topic.
 3. skip: true ONLY for: sports scores, entertainment listings, weekend picks, restaurant reviews, celebrity gossip, listicles, weather. false for all real news including national policy and business.
 
 Topic guide:
 - housing: zoning, rent, building permits, landlords, real estate, homelessness, mortgage rates
 - economy: jobs, wages, taxes, budget, trade, economic indicators, unemployment, inflation, GDP
-- business: companies, hiring, layoffs, startups, corporate news, investment, local business, Milwaukee firms
+- economy: (ALSO includes business) jobs, wages, taxes, budget, trade, companies, hiring, layoffs, startups, corporate news, investment, local business
 - education: schools, universities, students, teachers, MPS, UW system
 - transit: roads, buses, MCTS, streetcar, highways, infrastructure, transportation
 - safety: crime, police, courts, guns, fire department, public safety, prisons
@@ -96,7 +97,7 @@ No explanation. Just the array.`,
     }
 
     // Map scores back to stories (exclude skipped)
-    const validTopics = new Set(["housing", "economy", "business", "education", "transit", "safety", "health", "environment", "politics"]);
+    const validTopics = new Set(["housing", "economy", "education", "transit", "safety", "health", "environment", "politics"]);
 
     const skippedSet = new Set(skippedIds);
     const triaged: TriagedStory[] = stories
