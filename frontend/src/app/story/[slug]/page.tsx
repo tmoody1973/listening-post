@@ -113,8 +113,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       <div className="border border-white/10 p-5">
         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Sources & Attribution</h3>
         <div className="space-y-3">
-          {/* Original source */}
-          {article.source_url && (
+          {/* Original source — only show for Perigon/Congress/OpenStates (reliable URLs) */}
+          {article.source_url && ["perigon", "congress", "openstates", "fred"].includes(article.source) && (
             <div className="flex items-start gap-3">
               <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground w-24 shrink-0 pt-0.5">Original</span>
               <a
