@@ -141,7 +141,7 @@ export async function discoverNewsViaPerplexity(env: Env): Promise<RawStory[]> {
           content: `You are a local news wire service. Find today's most important civic news stories for Milwaukee, Wisconsin. Return structured JSON.
 
 Return ONLY a JSON array of 10-15 stories:
-[{"headline": "...", "summary": "2-3 sentence summary", "topic": "housing|economy|business|education|transit|safety|health|environment|politics", "source_name": "original publication name"}]
+[{"headline": "...", "summary": "2-3 sentence summary", "topic": "housing|economy|education|transit|safety|health|environment|politics", "source_name": "original publication name"}]
 
 IMPORTANT: Include stories across ALL topics — not just politics. We need at least 1 story for each: housing, economy, business, education, safety, health. National stories are welcome — they don't have to be Milwaukee-specific. Skip sports, entertainment, weather.`,
         },

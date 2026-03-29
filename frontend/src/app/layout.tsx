@@ -21,6 +21,7 @@ const TOPICS = [
   { label: "Education", href: "/topic/education" },
   { label: "Health", href: "/topic/health" },
   { label: "Transit", href: "/topic/transit" },
+  { label: "Environment", href: "/topic/environment" },
 ];
 
 function Navbar() {

@@ -1,5 +1,4 @@
 import { fetchStories, fetchEpisodes, fetchManifest, imageUrl, getSourceDisplay } from "@/lib/api";
-import { EditionPlayer } from "@/components/EditionPlayer";
 
 export const revalidate = 30;
 
@@ -45,47 +44,33 @@ export default async function HomePage() {
 
   return (
     <div>
-      {/* ─── PODCAST HERO ──────────────────────────────────── */}
-      {latestEpisode && manifest?.playlist ? (
-        <section className="mb-10">
-          <div className="border border-white/10 p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: "var(--color-coral)" }}>
-                {latestEpisode.edition === "morning" ? "Morning Edition" : "Evening Edition"}
-              </span>
-              <span className="text-sm text-muted-foreground">◆</span>
-              <span className="text-sm text-muted-foreground">
-                {new Date(latestEpisode.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-              </span>
-            </div>
-
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight leading-tight mb-2">
-              Your Milwaukee Briefing
-            </h2>
-            <p className="text-base text-muted-foreground mb-1">
-              Marcus, Sarah & Kesha ◆ {formatTime(manifest.totalDurationSeconds)} ◆ 3 acts
-            </p>
-            <p className="text-sm text-muted-foreground mb-5">
-              AI-produced from 8 data sources, every morning at 6 AM
-            </p>
-
-            <EditionPlayer
-              episodeId={latestEpisode.id}
-              edition={latestEpisode.edition}
-              date={latestEpisode.date}
-              playlist={manifest.playlist}
-              totalDuration={manifest.totalDurationSeconds}
-            />
+      {/* Podcast info card (player is in the sticky bar) */}
+      <section className="mb-10">
+        <div className="border border-white/10 p-6 md:p-8">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-sm font-bold uppercase tracking-[0.2em]" style={{ color: "var(--color-coral)" }}>
+              {latestEpisode ? (latestEpisode.edition === "morning" ? "Morning Edition" : "Evening Edition") : "Podcast"}
+            </span>
+            {latestEpisode && (
+              <>
+                <span className="text-sm text-muted-foreground">◆</span>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(latestEpisode.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </span>
+              </>
+            )}
           </div>
-        </section>
-      ) : (
-        <section className="mb-10">
-          <div className="border border-white/10 p-8 text-center">
-            <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Your Milwaukee Briefing</h2>
-            <p className="text-base text-muted-foreground">Next episode coming soon</p>
-          </div>
-        </section>
-      )}
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight leading-tight mb-2">
+            Your Milwaukee Briefing
+          </h2>
+          <p className="text-base text-muted-foreground mb-1">
+            Marcus, Sarah & Kesha {manifest ? `◆ ${formatTime(manifest.totalDurationSeconds)} ◆ 3 acts` : ""}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            AI-produced from 8 data sources, every morning at 6 AM. Press play above ↑
+          </p>
+        </div>
+      </section>
 
       {/* ─── TODAY'S NEWS ──────────────────────────────────── */}
       <div className="h-px bg-white/20 mb-6" />

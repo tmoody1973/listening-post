@@ -174,19 +174,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             Related Coverage
           </h3>
           <div className="space-y-3">
-            {related.map((r: any) => (
-              <div key={r.id} className="text-sm">
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: `var(--color-topic-${r.topic})` }}
-                >
-                  {r.topic}
-                </span>
-                <p className="font-medium leading-snug">
-                  {r.headline}
-                </p>
-              </div>
-            ))}
+            {related.map((r: any) => {
+              const relSlug = r.headline?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+              return (
+                <a key={r.id} href={`/story/${relSlug}`} className="block text-sm group">
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: `var(--color-topic-${r.topic})` }}
+                  >
+                    {r.topic}
+                  </span>
+                  <p className="font-medium leading-snug group-hover:text-[var(--color-coral)] transition-colors">
+                    {r.headline}
+                  </p>
+                </a>
+              );
+            })}
           </div>
         </>
       )}
