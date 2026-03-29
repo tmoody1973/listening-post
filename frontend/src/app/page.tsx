@@ -31,10 +31,13 @@ export default async function HomePage() {
     }
   }
 
-  // Filter stories: only enriched ones with readable headlines (have a body)
-  const enrichedStories = stories.filter((s: any) => s.body && s.body.length > 50);
-  const leadStory = enrichedStories[0] ?? stories[0] ?? null;
-  const sideStories = (enrichedStories.length > 1 ? enrichedStories : stories).slice(1, 4);
+  // Separate "What Congress Did" stories from regular news
+  const congressDigest = stories.filter((s: any) => s.headline?.startsWith("What Congress Did"));
+  const newsStories = stories.filter((s: any) => !s.headline?.startsWith("What Congress Did"));
+
+  // Lead with actual news, not congressional digest
+  const leadStory = newsStories[0] ?? null;
+  const sideStories = newsStories.slice(1, 4);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
@@ -163,6 +166,39 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ─── WHAT CONGRESS DID ────────────────────────────── */}
+      {congressDigest.length > 0 && (
+        <>
+          <div className="h-px bg-white/20 mb-6" />
+          <h2 className="text-2xl font-black uppercase tracking-tight mb-6">What Congress Did</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+            {congressDigest.slice(0, 3).map((story: any) => (
+              <a key={story.id} href={`/story/${story.slug}`}
+                 className="border border-white/10 p-5 hover:border-[var(--color-coral)]/50 transition-colors group">
+                {hasImage(story.image_url) && (
+                  <img
+                    src={imageUrl(story.image_url) ?? ""}
+                    alt=""
+                    className="w-full aspect-[16/9] object-cover grayscale group-hover:grayscale-0 transition-all duration-500 mb-3"
+                  />
+                )}
+                <div className="flex items-center gap-2 mb-1 text-xs uppercase tracking-[0.2em]">
+                  <span className="font-bold" style={{ color: "var(--color-coral)" }}>{story.topic}</span>
+                  <span className="text-muted-foreground">◆</span>
+                  <span className="text-muted-foreground">{getSourceDisplay(story)}</span>
+                </div>
+                <h3 className="text-base font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
+                  {story.headline}
+                </h3>
+                {story.summary && (
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{story.summary}</p>
+                )}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ─── LATEST EPISODES ───────────────────────────────── */}
       <div className="h-px bg-white/20 mb-6" />
