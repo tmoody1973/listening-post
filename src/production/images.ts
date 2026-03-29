@@ -2,7 +2,7 @@ import type { Env } from "../types";
 import { GoogleGenAI } from "@google/genai";
 
 function buildImagePrompt(headline: string): string {
-  return `Abstract editorial illustration, muted dusty blues, warm yellows, soft pinks, deep purples. Visual metaphor for: ${headline}. Dark atmospheric background, silhouette shapes, geometric forms. Risograph print texture, grain overlay, bold flat shapes. Completely wordless, completely textless, purely visual, no typography, no signage, no writing. 16:9 widescreen.`;
+  return `Editorial illustration for a news article: ${headline}. Style: modern magazine illustration with muted color palette of dusty blues, warm yellows, soft pinks, deep purples. Show recognizable scenes, buildings, people, or objects related to the topic. Dark moody background. Grain texture, risograph print aesthetic. No text, no words, no letters, no numbers anywhere. 16:9 widescreen composition.`;
 }
 
 async function generateWithGemini(env: Env, headline: string): Promise<ArrayBuffer | null> {
