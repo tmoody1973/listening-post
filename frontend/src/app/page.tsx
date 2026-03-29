@@ -9,9 +9,8 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function isRealPhoto(url: string | null): boolean {
-  if (!url) return false;
-  return url.startsWith("http") && !url.includes("/generated/");
+function hasImage(url: string | null): boolean {
+  return !!url && url.length > 0;
 }
 
 export default async function HomePage() {
@@ -101,7 +100,7 @@ export default async function HomePage() {
         <div className="lg:col-span-3">
           {leadStory && (
             <a href={`/story/${leadStory.slug}`} className="group block">
-              {isRealPhoto(leadStory.image_url) && (
+              {hasImage(leadStory.image_url) && (
                 <div className="relative p-1 border border-white/20 mb-5">
                   <div className="absolute inset-2 border border-white/10 pointer-events-none z-10" />
                   <img
@@ -136,7 +135,7 @@ export default async function HomePage() {
           <div className="space-y-6">
             {sideStories.map((story: any, i: number) => (
               <a key={story.id} href={`/story/${story.slug}`} className="group block">
-                {isRealPhoto(story.image_url) && i === 0 && (
+                {hasImage(story.image_url) && i === 0 && (
                   <div className="relative p-0.5 border border-white/20 mb-3">
                     <img
                       src={imageUrl(story.image_url) ?? ""}
@@ -155,7 +154,7 @@ export default async function HomePage() {
                 <h3 className="text-lg font-black uppercase tracking-tight leading-snug group-hover:text-[var(--color-coral)] transition-colors">
                   {story.headline}
                 </h3>
-                {!isRealPhoto(story.image_url) && story.summary && (
+                {!hasImage(story.image_url) && story.summary && (
                   <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{story.summary}</p>
                 )}
                 {i < sideStories.length - 1 && <div className="h-px bg-white/10 mt-6" />}
