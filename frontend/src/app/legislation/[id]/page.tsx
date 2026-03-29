@@ -1,4 +1,4 @@
-import { getTopicColor } from "@/lib/api";
+// Removed unused getTopicColor import
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://listening-post.tarikjmoody.workers.dev";
 

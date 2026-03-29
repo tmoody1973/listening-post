@@ -465,8 +465,10 @@ app.get("/api/civic/:id", async (c) => {
   const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
   if (!item) return c.json({ error: "Not found" }, 404);
 
-  // If no body yet, generate one with Perplexity
-  if (!item.body && item.title) {
+  // If no body yet, generate one with Perplexity (with lock to prevent concurrent calls)
+  if (!item.body && item.body !== "ENRICHING" && item.title) {
+    // Set lock to prevent concurrent enrichment
+    await c.env.DB.prepare("UPDATE civic_items SET body = 'ENRICHING' WHERE id = ? AND body IS NULL").bind(id).run();
     try {
       const response = await fetch("https://api.perplexity.ai/chat/completions", {
         method: "POST",
@@ -505,8 +507,8 @@ app.get("/api/civic/:id", async (c) => {
             : null;
 
           await c.env.DB.prepare(
-            "UPDATE civic_items SET body = ?, source_url = COALESCE(source_url, ?) WHERE id = ?"
-          ).bind(body, sourcesJson, id).run();
+            "UPDATE civic_items SET body = ? WHERE id = ?"
+          ).bind(body, id).run();
 
           item.body = body;
         }
