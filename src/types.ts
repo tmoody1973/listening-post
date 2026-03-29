@@ -143,26 +143,20 @@ export interface FredSeries {
   topic: string;
 }
 
-// The 16 FRED series we track
+// FRED series — verified working with recent data
 export const FRED_SERIES: FredSeries[] = [
   // Housing
-  { id: "ATNHPIUS33340Q", title: "Milwaukee MSA Median Home Price", frequency: "quarterly", units: "$", topic: "housing" },
-  { id: "BPPRIV255079", title: "Milwaukee County Building Permits", frequency: "monthly", units: "permits", topic: "housing" },
-  { id: "WUSTHPI", title: "Wisconsin House Price Index", frequency: "quarterly", units: "index", topic: "housing" },
+  { id: "ATNHPIUS33340Q", title: "Milwaukee Home Price Index", frequency: "quarterly", units: "index", topic: "housing" },
+  { id: "ACTLISCOU55079", title: "Milwaukee Active Listings", frequency: "monthly", units: "listings", topic: "housing" },
+  { id: "MILW355BPPRIVSA", title: "Milwaukee Building Permits", frequency: "monthly", units: "units", topic: "housing" },
   { id: "WIHOWN", title: "Wisconsin Homeownership Rate", frequency: "quarterly", units: "%", topic: "housing" },
-  { id: "CUURS23ASAH", title: "CPI Midwest Housing", frequency: "monthly", units: "index", topic: "housing" },
   { id: "RRVRUSQ156N", title: "US Rental Vacancy Rate", frequency: "quarterly", units: "%", topic: "housing" },
   // Economy
-  { id: "MILK555URN", title: "Milwaukee Unemployment Rate", frequency: "monthly", units: "%", topic: "economy" },
-  { id: "WINGSP", title: "Wisconsin Gross State Product", frequency: "quarterly", units: "$M", topic: "economy" },
-  { id: "MILV526PCPI", title: "Milwaukee MSA Per Capita Income", frequency: "annual", units: "$", topic: "economy" },
-  { id: "ENUC334030010", title: "Milwaukee MSA Avg Weekly Wage", frequency: "quarterly", units: "$", topic: "economy" },
-  { id: "LAUMT553334000000003", title: "Milwaukee Employment Level", frequency: "monthly", units: "persons", topic: "economy" },
-  { id: "SMU55334000500000001", title: "Milwaukee Private Employment", frequency: "monthly", units: "K persons", topic: "economy" },
-  { id: "CUURS23ASA0", title: "CPI Midwest Urban Consumers", frequency: "monthly", units: "index", topic: "economy" },
+  { id: "WIMILW5URN", title: "Milwaukee Unemployment Rate", frequency: "monthly", units: "%", topic: "economy" },
+  { id: "MHIWI55079A052NCEN", title: "Milwaukee Median Household Income", frequency: "annual", units: "$", topic: "economy" },
+  { id: "S1701ACS055079", title: "Milwaukee Poverty Rate", frequency: "annual", units: "%", topic: "economy" },
+  { id: "WINGSP", title: "Wisconsin GDP", frequency: "quarterly", units: "$M", topic: "economy" },
+  { id: "CUURA207SA0", title: "Consumer Price Index (Chicago-Milwaukee)", frequency: "monthly", units: "index", topic: "economy" },
   // Transit
-  { id: "CUURS23ASAT", title: "CPI Midwest Transportation", frequency: "monthly", units: "index", topic: "transit" },
-  // Demographics
-  { id: "S1701ACS055079", title: "Milwaukee County Poverty Rate", frequency: "annual", units: "%", topic: "economy" },
-  { id: "WIGINIALLH", title: "Wisconsin Gini Index", frequency: "annual", units: "index", topic: "economy" },
+  { id: "APUS23A74714", title: "Gas Prices (Milwaukee Area)", frequency: "monthly", units: "$/gal", topic: "transit" },
 ];
