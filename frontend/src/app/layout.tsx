@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { PlayerBar } from "@/components/PlayerBar";
-
-const barlow = Barlow_Condensed({
-  variable: "--font-barlow",
-  subsets: ["latin"],
-  weight: ["700", "800", "900"],
-});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -89,7 +83,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${barlow.variable} ${inter.variable} h-full antialiased dark`}
+      className={`${inter.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col">
         <Navbar />

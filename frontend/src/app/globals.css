@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Anybody:ital,wdth,wght@0,75..150,100..900;1,75..150,100..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -7,10 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "IBM Plex Sans", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-heading: "Anybody", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "IBM Plex Sans", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-coral: #D85A30;
   --color-coral-dark: #B84A25;
   --color-topic-housing: #185FA5;
@@ -142,16 +143,16 @@
   }
 }
 
-/* Force sans-serif globally — prevent Tailwind v4 serif variable and browser defaults */
+/* Typography: Anybody for headlines, IBM Plex Sans for body */
 @layer base {
   *, *::before, *::after {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   }
-  html {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  html, body {
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   }
-  /* Headlines use Barlow Condensed */
   h1, h2, h3, h4 {
-    font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+    font-family: "Anybody", ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: "wdth" 110;
   }
 }
