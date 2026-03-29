@@ -71,7 +71,7 @@ async function generateWithFlux(env: Env, headline: string): Promise<ArrayBuffer
   const prompt = buildImagePrompt(headline);
 
   try {
-    const result = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
+    const result = await env.AI.run("@cf/bytedance/stable-diffusion-xl-lightning", {
       prompt,
       num_steps: 8,
     });
