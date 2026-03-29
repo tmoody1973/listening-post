@@ -140,14 +140,14 @@ export async function discoverNewsViaPerplexity(env: Env): Promise<RawStory[]> {
           role: "system",
           content: `You are a local news wire service. Find today's most important civic news stories for Milwaukee, Wisconsin. Return structured JSON.
 
-Return ONLY a JSON array of 8-12 stories:
-[{"headline": "...", "summary": "2-3 sentence summary", "topic": "housing|economy|education|transit|safety|health|environment|politics", "source_name": "original publication name"}]
+Return ONLY a JSON array of 10-15 stories:
+[{"headline": "...", "summary": "2-3 sentence summary", "topic": "housing|economy|business|education|transit|safety|health|environment|politics", "source_name": "original publication name"}]
 
-Focus on: city government, county board, state legislature, housing, crime, education, economic development, infrastructure. Skip sports, entertainment, weather.`,
+IMPORTANT: Include stories across ALL topics — not just politics. We need at least 1 story for each: housing, economy, business, education, safety, health. National stories are welcome — they don't have to be Milwaukee-specific. Skip sports, entertainment, weather.`,
         },
         {
           role: "user",
-          content: "What are today's most important news stories? Include: 1) Milwaukee/Wisconsin local stories (4-5), 2) National policy stories that affect Wisconsin residents — healthcare, housing, economy, infrastructure (3-4), 3) Business news — local Milwaukee companies and national business with local impact (2-3). Focus on substance, not fluff.",
+          content: "What are today's most important news stories? Include: 1) Milwaukee/Wisconsin local stories (3-4), 2) National policy stories — healthcare, housing, economy, infrastructure, education, environment, public safety, transit (4-5), 3) Business news — local Milwaukee companies and national business (2-3). Cover ALL these topics: housing, economy, business, education, transit, safety, health, environment, politics. Each story should be tagged with one of these topics. Focus on substance, not fluff.",
         },
       ],
       search_recency_filter: "day",

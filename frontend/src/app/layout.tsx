@@ -17,6 +17,7 @@ const TOPICS = [
   { label: "Housing", href: "/topic/housing" },
   { label: "Politics", href: "/topic/politics" },
   { label: "Economy", href: "/topic/economy" },
+  { label: "Business", href: "/topic/business" },
   { label: "Safety", href: "/topic/safety" },
   { label: "Education", href: "/topic/education" },
   { label: "Health", href: "/topic/health" },
