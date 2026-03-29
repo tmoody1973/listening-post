@@ -312,13 +312,13 @@ export default async function CityHallPage() {
                   <div className="flex gap-3 mt-2">
                     {meeting.agenda_url && (
                       <a href={meeting.agenda_url} target="_blank" rel="noopener noreferrer"
-                         className="text-xs text-[var(--color-coral)]" onClick={(e) => e.stopPropagation()}>
+                         className="text-xs text-[var(--color-coral)]">
                         Agenda →
                       </a>
                     )}
                     {meeting.minutes_url && (
                       <a href={meeting.minutes_url} target="_blank" rel="noopener noreferrer"
-                         className="text-xs text-[var(--color-coral)]" onClick={(e) => e.stopPropagation()}>
+                         className="text-xs text-[var(--color-coral)]">
                         Minutes →
                       </a>
                     )}
