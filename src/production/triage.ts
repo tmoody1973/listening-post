@@ -53,6 +53,8 @@ ALWAYS SKIP — these are NEVER civic news:
 - Weather forecasts, listicles, weekend picks
 - Non-English articles
 - Stories about other cities/states with no Wisconsin connection
+- Meta-news stories about news broadcasts, media coverage roundups ("morning news covers", "weekend news recap", "news highlights")
+- Stories that are just summaries of other news stories
 
 Return ONLY a JSON array: [{"i":0,"r":0.85,"t":"housing","s":false},...]
 No explanation. Just the array.`,
