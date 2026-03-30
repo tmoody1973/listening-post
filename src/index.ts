@@ -412,7 +412,7 @@ app.get("/api/topic/:topic", async (c) => {
 
   const [stories, bills] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT * FROM stories WHERE topic = ? AND published_at IS NOT NULL ORDER BY published_at DESC LIMIT 20"
+      "SELECT * FROM stories WHERE topic = ? ORDER BY created_at DESC LIMIT 20"
     ).bind(topic).all(),
     c.env.DB.prepare(
       "SELECT * FROM bills WHERE topic = ? ORDER BY updated_at DESC LIMIT 10"
