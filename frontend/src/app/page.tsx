@@ -151,7 +151,7 @@ export default async function HomePage() {
         <>
           <div className="h-px bg-white/20 mb-6" />
           <h2 className="text-2xl font-black uppercase tracking-tight mb-6">What Congress Did</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-12">
             {congressDigest.slice(0, 3).map((story: any) => (
               <a key={story.id} href={`/story/${story.slug}`}
                  className="border border-white/10 p-5 hover:border-[var(--color-coral)]/50 transition-colors group">
@@ -187,7 +187,7 @@ export default async function HomePage() {
           All Episodes
         </a>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
         {episodes.slice(0, 3).map((ep: any) => {
           const edLabel = ep.edition === "morning" ? "Morning Edition" : "Evening Edition";
           const dur = ep.duration_seconds ? formatTime(ep.duration_seconds) : "~9:00";
@@ -220,7 +220,7 @@ export default async function HomePage() {
       {/* ─── EXPLORE ───────────────────────────────────────── */}
       <div className="h-px bg-white/20 mb-6" />
       <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground mb-6">Explore</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <a href="/city-hall" className="border border-white/10 p-5 hover:border-[var(--color-coral)]/50 transition-colors group text-center">
           <h3 className="text-base font-black uppercase tracking-tight group-hover:text-[var(--color-coral)] transition-colors">City Hall</h3>
           <p className="text-xs text-muted-foreground mt-1">Civic digest</p>

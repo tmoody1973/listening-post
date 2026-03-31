@@ -14,12 +14,16 @@ export async function getOrCreateArticleAgent(
   source: string
 ): Promise<{ agentId: string; signedUrl: string }> {
   // Check if agent already exists for this article
-  const cached = await env.CONFIG_KV.get(`agent:${articleId}`);
+  const cached = await env.CONFIG_KV.get(`agent:v2:${articleId}`);
   if (cached) {
     const { agentId } = JSON.parse(cached);
-    // Get fresh signed URL
-    const signedUrl = await getSignedUrl(env, agentId);
-    return { agentId, signedUrl };
+    try {
+      const signedUrl = await getSignedUrl(env, agentId);
+      return { agentId, signedUrl };
+    } catch {
+      // Agent may have expired — recreate
+      await env.CONFIG_KV.delete(`agent:v2:${articleId}`);
+    }
   }
 
   // Build knowledge document from article + related data
@@ -31,8 +35,8 @@ export async function getOrCreateArticleAgent(
   // Get signed URL for widget
   const signedUrl = await getSignedUrl(env, agentId);
 
-  // Cache agent ID
-  await env.CONFIG_KV.put(`agent:${articleId}`, JSON.stringify({ agentId }), {
+  // Cache agent ID (v2 key busts old cache without search tool)
+  await env.CONFIG_KV.put(`agent:v2:${articleId}`, JSON.stringify({ agentId }), {
     expirationTtl: 86400 * 7, // 7 day cache
   });
 
