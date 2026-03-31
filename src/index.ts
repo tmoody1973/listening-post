@@ -509,6 +509,32 @@ app.post("/api/voice-agent/search", async (c) => {
   }
 });
 
+// Voice agent for civic items — MUST be before /:slug to avoid wildcard capture
+app.get("/api/voice-agent/civic/:id", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const rlKey = `ratelimit:voice:${ip}`;
+  const recent = await c.env.CONFIG_KV.get(rlKey);
+  if (recent) return c.json({ error: "Too many requests. Wait 60 seconds." }, 429);
+  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 60 });
+  const id = decodeURIComponent(c.req.param("id"));
+  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
+
+  if (!item || !item.body) {
+    return c.json({ error: "Item not found or has no content" }, 404);
+  }
+
+  try {
+    const { getOrCreateArticleAgent } = await import("./production/voice-agent");
+    const result = await getOrCreateArticleAgent(
+      c.env, item.id, item.title, item.body, item.category ?? "politics", item.source
+    );
+    return c.json(result);
+  } catch (error) {
+    console.error("[VoiceAgent] Failed:", error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 // Voice agent for article conversations (rate limited)
 app.get("/api/voice-agent/:slug", async (c) => {
   try {
@@ -548,36 +574,7 @@ app.get("/api/voice-agent/:slug", async (c) => {
   }
 });
 
-// Voice agent for civic items (rate limited)
-app.get("/api/voice-agent/civic/:id", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
-  const rlKey = `ratelimit:voice:${ip}`;
-  const recent = await c.env.CONFIG_KV.get(rlKey);
-  if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
-  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 60 });
-  const id = decodeURIComponent(c.req.param("id"));
-  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
-
-  if (!item || !item.body) {
-    return c.json({ error: "Item not found or has no content" }, 404);
-  }
-
-  try {
-    const { getOrCreateArticleAgent } = await import("./production/voice-agent");
-    const result = await getOrCreateArticleAgent(
-      c.env,
-      item.id,
-      item.title,
-      item.body,
-      item.category ?? "politics",
-      item.source
-    );
-    return c.json(result);
-  } catch (error) {
-    console.error("[VoiceAgent] Failed:", error);
-    return c.json({ error: String(error) }, 500);
-  }
-});
+// (civic voice agent route moved above /:slug to avoid wildcard capture)
 
 // Civic item detail — enriches with Perplexity if no body exists
 app.get("/api/civic/:id", async (c) => {
