@@ -1,4 +1,5 @@
 import { fetchArticle, imageUrl } from "@/lib/api";
+import { VoiceAgent } from "@/components/VoiceAgent";
 import { TopicLabel } from "@/components/TopicLabel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -105,6 +106,14 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               )}
             </div>
           </Card>
+        </>
+      )}
+
+      {/* Voice Agent — Talk to Kesha */}
+      {article.body && (
+        <>
+          <Separator className="my-8" />
+          <VoiceAgent slug={slug} type="story" headline={article.headline} />
         </>
       )}
 

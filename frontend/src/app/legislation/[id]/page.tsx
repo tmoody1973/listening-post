@@ -1,4 +1,4 @@
-// Removed unused getTopicColor import
+import { VoiceAgent } from "@/components/VoiceAgent";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://listening-post.tarikjmoody.workers.dev";
 
@@ -152,6 +152,14 @@ export default async function LegislationDetailPage({ params }: { params: Promis
             )}
           </div>
         </div>
+      )}
+
+      {/* Voice Agent */}
+      {item.body && (
+        <>
+          <div className="h-px bg-white/20 mb-8 mt-8" />
+          <VoiceAgent slug={id} type="civic" headline={item.title} />
+        </>
       )}
 
       {/* Back */}

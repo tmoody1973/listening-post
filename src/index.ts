@@ -459,6 +459,58 @@ app.get("/api/bill/:id", async (c) => {
   return c.json({ bill, story });
 });
 
+// Voice agent for article conversations
+app.get("/api/voice-agent/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const article = await c.env.DB.prepare("SELECT * FROM stories WHERE slug = ?").bind(slug).first() as any;
+
+  if (!article || !article.body) {
+    return c.json({ error: "Article not found or has no content" }, 404);
+  }
+
+  try {
+    const { getOrCreateArticleAgent } = await import("./production/voice-agent");
+    const result = await getOrCreateArticleAgent(
+      c.env,
+      article.id,
+      article.headline,
+      article.body,
+      article.topic,
+      article.source
+    );
+    return c.json(result);
+  } catch (error) {
+    console.error("[VoiceAgent] Failed:", error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Voice agent for civic items
+app.get("/api/voice-agent/civic/:id", async (c) => {
+  const id = decodeURIComponent(c.req.param("id"));
+  const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
+
+  if (!item || !item.body) {
+    return c.json({ error: "Item not found or has no content" }, 404);
+  }
+
+  try {
+    const { getOrCreateArticleAgent } = await import("./production/voice-agent");
+    const result = await getOrCreateArticleAgent(
+      c.env,
+      item.id,
+      item.title,
+      item.body,
+      item.category ?? "politics",
+      item.source
+    );
+    return c.json(result);
+  } catch (error) {
+    console.error("[VoiceAgent] Failed:", error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 // Civic item detail — enriches with Perplexity if no body exists
 app.get("/api/civic/:id", async (c) => {
   const id = decodeURIComponent(c.req.param("id"));
