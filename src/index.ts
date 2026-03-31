@@ -462,8 +462,15 @@ app.get("/api/bill/:id", async (c) => {
 // Perplexity webhook for voice agent — the agent calls this to search
 app.post("/api/voice-agent/search", async (c) => {
   try {
+    // Rate limit
+    const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+    const rlKey = `ratelimit:search:${ip}`;
+    const recent = await c.env.CONFIG_KV.get(rlKey);
+    if (recent) return c.json({ result: "Please wait a moment before searching again." });
+    await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 60 });
+
     const body = await c.req.json() as { query?: string };
-    const query = body.query ?? "";
+    const query = (body.query ?? "").slice(0, 500);
     if (!query) return c.json({ result: "No query provided" });
 
     const response = await fetch("https://api.perplexity.ai/chat/completions", {
