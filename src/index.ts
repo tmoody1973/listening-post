@@ -459,6 +459,49 @@ app.get("/api/bill/:id", async (c) => {
   return c.json({ bill, story });
 });
 
+// Perplexity webhook for voice agent — the agent calls this to search
+app.post("/api/voice-agent/search", async (c) => {
+  try {
+    const body = await c.req.json() as { query?: string };
+    const query = body.query ?? "";
+    if (!query) return c.json({ result: "No query provided" });
+
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${c.env.PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          { role: "system", content: "You are a research assistant for a Milwaukee news reporter. Provide concise, factual answers with sources. Keep responses under 200 words. Format for spoken conversation — no bullet points or headers." },
+          { role: "user", content: query },
+        ],
+        web_search_options: {
+          search_context_size: "medium",
+          user_location: { latitude: 43.0389, longitude: -87.9065, country: "US" },
+        },
+        temperature: 0.2,
+      }),
+    });
+
+    if (!response.ok) return c.json({ result: "Search temporarily unavailable" });
+
+    const data = await response.json() as { choices: { message: { content: string } }[]; citations?: string[] };
+    const answer = data.choices?.[0]?.message?.content ?? "No results found";
+    const citations = data.citations ?? [];
+
+    return c.json({
+      result: answer,
+      sources: citations.slice(0, 3).join(", "),
+    });
+  } catch (error) {
+    console.error("[VoiceAgent Search] Failed:", error);
+    return c.json({ result: "Search temporarily unavailable" });
+  }
+});
+
 // Voice agent for article conversations (rate limited)
 app.get("/api/voice-agent/:slug", async (c) => {
   try {

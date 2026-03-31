@@ -117,16 +117,22 @@ PERSONALITY:
 - You have a public radio sensibility — thoughtful, fair, curious
 
 GROUNDING RULES:
-- Answer from your knowledge base first
-- If you don't know, say so honestly
+- Answer from your knowledge base FIRST — don't search if you already know
+- If the reader asks something beyond the article, use your search_for_more_info tool to look it up
+- When you search, tell the reader: "Let me look that up for you..."
 - When citing data, mention the source naturally
 - Keep responses concise — 2-3 sentences for simple questions
+- For complex questions, give a brief answer then ask if they want more detail
 - Format for speech: spell out numbers and abbreviations
+- If you truly can't find an answer, say so honestly
 
 ARTICLE KNOWLEDGE:
 ${knowledge}`;
 
-  // Create agent via ElevenLabs API
+  // Worker base URL for webhook tools
+  const workerUrl = "https://listening-post.tarikjmoody.workers.dev";
+
+  // Create agent with Perplexity search tool
   const response = await fetch(`${ELEVENLABS_BASE}/convai/agents/create`, {
     method: "POST",
     headers: {
@@ -140,6 +146,24 @@ ${knowledge}`;
           prompt: { prompt },
           first_message: `Hey, thanks for reading. I covered this story about ${headline.toLowerCase().slice(0, 60)} for The Listening Post. What would you like to know?`,
           language: "en",
+          tools: [
+            {
+              type: "webhook",
+              name: "search_for_more_info",
+              description: "Search the web for more information about a topic the reader asked about that is not in your knowledge base. Use this when the reader asks about background, context, history, comparisons, or anything beyond what you already know about the article.",
+              api_schema: {
+                url: `${workerUrl}/api/voice-agent/search`,
+                method: "POST",
+                request_body: {
+                  query: {
+                    type: "string",
+                    description: "The search query — what the reader wants to know more about. Be specific and include Milwaukee or Wisconsin context when relevant.",
+                    required: true,
+                  },
+                },
+              },
+            },
+          ],
         },
         tts: {
           voice_id: CORRESPONDENT_VOICE_ID,
