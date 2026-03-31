@@ -461,19 +461,27 @@ app.get("/api/bill/:id", async (c) => {
 
 // Voice agent for article conversations (rate limited)
 app.get("/api/voice-agent/:slug", async (c) => {
-  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
-  const rlKey = `ratelimit:voice:${ip}`;
-  const recent = await c.env.CONFIG_KV.get(rlKey);
-  if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
-  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 30 });
-  const slug = c.req.param("slug");
-  const article = await c.env.DB.prepare("SELECT * FROM stories WHERE slug = ?").bind(slug).first() as any;
-
-  if (!article || !article.body) {
-    return c.json({ error: "Article not found or has no content" }, 404);
-  }
-
   try {
+    const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+    const rlKey = `ratelimit:voice:${ip}`;
+    const recent = await c.env.CONFIG_KV.get(rlKey);
+    if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
+    await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 60 });
+
+    const slug = c.req.param("slug");
+    console.log(`[VoiceAgent] Request for slug: ${slug}`);
+
+    const article = await c.env.DB.prepare("SELECT * FROM stories WHERE slug = ?").bind(slug).first() as any;
+
+    if (!article) {
+      return c.json({ error: "Article not found" }, 404);
+    }
+    if (!article.body) {
+      return c.json({ error: "Article has no content for voice agent" }, 404);
+    }
+
+    console.log(`[VoiceAgent] Creating agent for: ${article.headline?.slice(0, 50)}`);
+
     const { getOrCreateArticleAgent } = await import("./production/voice-agent");
     const result = await getOrCreateArticleAgent(
       c.env,
@@ -486,7 +494,7 @@ app.get("/api/voice-agent/:slug", async (c) => {
     return c.json(result);
   } catch (error) {
     console.error("[VoiceAgent] Failed:", error);
-    return c.json({ error: String(error) }, 500);
+    return c.json({ error: `Voice agent error: ${String(error)}` }, 500);
   }
 });
 
@@ -496,7 +504,7 @@ app.get("/api/voice-agent/civic/:id", async (c) => {
   const rlKey = `ratelimit:voice:${ip}`;
   const recent = await c.env.CONFIG_KV.get(rlKey);
   if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
-  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 30 });
+  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 60 });
   const id = decodeURIComponent(c.req.param("id"));
   const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
 
