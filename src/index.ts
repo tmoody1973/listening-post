@@ -459,8 +459,13 @@ app.get("/api/bill/:id", async (c) => {
   return c.json({ bill, story });
 });
 
-// Voice agent for article conversations
+// Voice agent for article conversations (rate limited)
 app.get("/api/voice-agent/:slug", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const rlKey = `ratelimit:voice:${ip}`;
+  const recent = await c.env.CONFIG_KV.get(rlKey);
+  if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
+  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 30 });
   const slug = c.req.param("slug");
   const article = await c.env.DB.prepare("SELECT * FROM stories WHERE slug = ?").bind(slug).first() as any;
 
@@ -485,8 +490,13 @@ app.get("/api/voice-agent/:slug", async (c) => {
   }
 });
 
-// Voice agent for civic items
+// Voice agent for civic items (rate limited)
 app.get("/api/voice-agent/civic/:id", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const rlKey = `ratelimit:voice:${ip}`;
+  const recent = await c.env.CONFIG_KV.get(rlKey);
+  if (recent) return c.json({ error: "Too many requests. Wait 30 seconds." }, 429);
+  await c.env.CONFIG_KV.put(rlKey, "1", { expirationTtl: 30 });
   const id = decodeURIComponent(c.req.param("id"));
   const item = await c.env.DB.prepare("SELECT * FROM civic_items WHERE id = ?").bind(id).first() as any;
 

@@ -19,15 +19,13 @@ export function VoiceAgent({ slug, type, headline }: VoiceAgentProps) {
   // Load the ElevenLabs widget script
   useEffect(() => {
     if (!agentData) return;
-
+    const id = "elevenlabs-convai-script";
+    if (document.getElementById(id)) return;
     const script = document.createElement("script");
+    script.id = id;
     script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
     script.async = true;
     document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
   }, [agentData]);
 
   const startAgent = useCallback(async () => {
