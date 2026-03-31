@@ -52,6 +52,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       </div>
 
       {/* Hero Image */}
+      {/* Voice Agent — Talk to Kesha */}
+      {article.body && (
+        <div className="mb-6">
+          <VoiceAgent slug={slug} type="story" headline={article.headline} />
+        </div>
+      )}
+
       {article.image_url && (
         <div className="mb-6">
           <div className="aspect-[16/9] rounded-lg overflow-hidden bg-muted">
@@ -106,14 +113,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               )}
             </div>
           </Card>
-        </>
-      )}
-
-      {/* Voice Agent — Talk to Kesha */}
-      {article.body && (
-        <>
-          <Separator className="my-8" />
-          <VoiceAgent slug={slug} type="story" headline={article.headline} />
         </>
       )}
 

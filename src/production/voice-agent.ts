@@ -143,7 +143,7 @@ ${knowledge}`;
         },
         tts: {
           voice_id: CORRESPONDENT_VOICE_ID,
-          model_id: "eleven_flash_v2",
+          model_id: "eleven_turbo_v2_5",
         },
       },
       platform_settings: {
