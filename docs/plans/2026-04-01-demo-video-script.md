@@ -149,14 +149,40 @@
 
 ## PRODUCTION ORDER
 
-1. **Write final script** (this document — done)
-2. **Generate Veo 3.1 scenes** (6 clips, can run in parallel)
-3. **Capture screen recordings** (4 clips, need the live site)
-4. **Build ElevenLabs Flow pipeline** (narrator voice + music + SFX)
-5. **Build Remotion project** (motion graphics + assembly)
-6. **Assemble in Remotion** (all assets → final 90s video)
-7. **Polish in ElevenLabs Studio** (timing adjustments, audio levels)
-8. **Export and submit**
+### Phase 1: Asset Production (parallel)
+1. **ElevenLabs Flow** — Build scene pipelines:
+   - Scene 1-6: Veo 3.1 prompts → generated video clips (8s max each)
+   - Narrator TTS: full voiceover track using pharma-ad voice
+   - Music: soft piano + strings background track
+   - SFX: transition whooshes, subtle UI sounds
+   - Export each scene as individual clips with audio baked in
+2. **Screen recordings** — Capture 4 app clips from the live site
+3. **Remotion motion graphics** — Build 4 animated sequences:
+   - Pill bottle reveal
+   - Topic page montage
+   - Tech infographic (Cloudflare + ElevenLabs)
+   - Logo + URL card
+
+### Phase 2: Final Assembly in Remotion
+4. **Import all assets into Remotion:**
+   - Flow scene clips (6 Veo scenes with voiceover + music)
+   - Screen recordings (4 clips)
+   - Motion graphic sequences (4 Remotion-built animations)
+5. **Remotion compiles the final 90-second video:**
+   - Precise timing and sequencing per the script
+   - Transitions between scenes
+   - Text overlays (side effects text, tech specs)
+   - Audio mixing (narrator ducks for podcast clip at 0:33)
+   - Export 1920x1080 30fps MP4
+
+### Phase 3: Polish + Submit
+6. **Review final render** — check timing, audio levels, readability
+7. **Submit to hackathon**
+
+### Why this workflow:
+- **Flow** = AI-powered scene production (Veo + TTS + music + SFX in one pipeline)
+- **Remotion** = programmatic video assembly (precise frame-level control, motion graphics, final export)
+- Flow produces the ingredients, Remotion bakes the cake
 
 ---
 
