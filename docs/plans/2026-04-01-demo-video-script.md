@@ -49,7 +49,7 @@
 **[Screen recording: Scrolling the City Hall page — new restaurants, legislation, meetings.]**
 
 **NARRATOR:**
-"New restaurants opening in your neighborhood. What the council voted on. Building permits filed on your block."
+"New restaurants opening in your neighborhood. What the council is working on. Legislation moving through committees."
 
 **[Screen recording: Click "Talk to Kesha" — voice agent orb appears. User asks a question.]**
 
@@ -62,7 +62,7 @@
 **[Veo 3.1 Scene 4: 8s]** Person walking confidently into a coffee shop, phone in hand, smiling. Sunlight.
 
 **NARRATOR (reading faster, classic drug-ad cadence):**
-"Side effects of The Listening Post may include: knowing what your representatives actually voted on..."
+"Side effects of The Listening Post may include: knowing what legislation your representatives are pushing..."
 
 **[Veo 3.1 Scene 5: 8s]** Person at a dinner party, confidently explaining something. Friends leaning in, impressed.
 
@@ -80,7 +80,7 @@
 **[Remotion: Animated infographic — Cloudflare + ElevenLabs logos. Service icons appear one by one:]**
 
 **NARRATOR:**
-"Powered by eight Cloudflare services. Four ElevenLabs APIs. Runs autonomously. Zero servers."
+"Powered by seven Cloudflare services. Four ElevenLabs APIs. Runs autonomously. No human in the loop."
 
 **[Remotion: Text overlay — "8 Data Sources → AI Triage → 3-Voice Podcast → Published by 6 AM"]**
 
