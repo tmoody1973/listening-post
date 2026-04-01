@@ -186,6 +186,165 @@
 
 ---
 
+---
+
+## ELEVENLABS FLOW VOICEOVER
+
+### Full Script (90s)
+
+```
+Are you tired of not knowing what your city council voted on last Tuesday?
+
+Do you suffer from chronic civic confusion? Legislative bewilderment? Zoning-related anxiety?
+
+Introducing The Listening Post.
+
+The first AI-powered newsroom that wakes up every morning, reads what Congress and your state legislature did, and turns it into a podcast you can listen to on your commute.
+
+Three AI correspondents. Real Milwaukee news. Every morning at six AM.
+
+New restaurants opening in your neighborhood. What the council is working on. Legislation moving through committees.
+
+And if you have questions... just ask.
+
+Side effects of The Listening Post may include: knowing what legislation your representatives are pushing... dangerously informed dinner conversations... spontaneous opinions about TIF districts... an unexplained urge to attend city council meetings... and a sudden awareness that there are fifteen aldermanic districts.
+
+Powered by seven Cloudflare services. Four ElevenLabs APIs. Runs autonomously. No human in the loop.
+
+Ask your city council about The Listening Post.
+
+Local news didn't die because nobody needed it.
+```
+
+### ElevenLabs Flow Settings
+
+| Setting | Value |
+|---------|-------|
+| Voice | Calm, warm, authoritative — pharmaceutical ad narrator style |
+| Model | `eleven_turbo_v2` or `eleven_multilingual_v2` |
+| Stability | 0.65 (controlled, professional) |
+| Similarity boost | 0.80 |
+| Style | 0.20 (restrained — pharma ads are understated) |
+| Speed | 1.0 for most, 1.15 for the "side effects" section |
+
+### Per-Scene Audio Files
+
+Generate each section's voiceover as separate audio for Remotion timing:
+
+```
+public/voiceover/scene-01-cold-open.mp3        "Are you tired..."
+public/voiceover/scene-02-problem.mp3           "Do you suffer from..."
+public/voiceover/scene-03-reveal.mp3            "Introducing The Listening Post..."
+public/voiceover/scene-04-experience-a.mp3      "Three AI correspondents..."
+public/voiceover/scene-04-experience-b.mp3      "New restaurants opening..."
+public/voiceover/scene-04-experience-c.mp3      "And if you have questions..."
+public/voiceover/scene-05-side-effects.mp3      "Side effects may include..." (faster cadence)
+public/voiceover/scene-06-tech-flex.mp3         "Powered by seven..."
+public/voiceover/scene-07-close.mp3             "Ask your city council..." + "Local news..."
+```
+
+Also generate from Flow:
+```
+public/music/pharma-bg-track.mp3                Soft piano + light strings (pharma ad mood)
+public/sfx/transition-whoosh.mp3                Subtle whoosh between sections
+public/sfx/ui-click.mp3                         Soft click for screen recording transitions
+```
+
+---
+
+## REMOTION PROJECT STRUCTURE
+
+```
+remotion-listening-post/
+├── src/
+│   ├── Root.tsx                     # Composition definition (90s, 1920x1080, 30fps)
+│   ├── scenes/
+│   │   ├── ColdOpen.tsx             # Veo clip + narrator
+│   │   ├── TheProblem.tsx           # Veo clips + narrator
+│   │   ├── ProductReveal.tsx        # Pill bottle motion graphic + app screenshot
+│   │   ├── TheExperience.tsx        # Screen recordings + podcast audio + narrator
+│   │   ├── SideEffects.tsx          # Veo clips + fast narrator + topic montage
+│   │   ├── TechFlex.tsx             # Animated infographic
+│   │   └── TheClose.tsx             # Milwaukee skyline + logo reveal
+│   ├── components/
+│   │   ├── PillBottle.tsx           # 2D pill bottle with "THE LISTENING POST" label
+│   │   ├── TopicMontage.tsx         # Rapid-fire topic page screenshots
+│   │   ├── TechInfographic.tsx      # Cloudflare + ElevenLabs service icons
+│   │   └── LogoReveal.tsx           # "the listening POST" + URL
+│   └── lib/
+│       └── tokens.ts                # Brand colors, fonts, durations
+├── public/
+│   ├── voiceover/                   # Per-scene MP3s from ElevenLabs Flow
+│   ├── music/                       # Background track from Flow
+│   ├── sfx/                         # Transition sounds from Flow
+│   ├── veo/                         # Veo 3.1 generated clips (MP4)
+│   │   ├── scene-01-kitchen.mp4
+│   │   ├── scene-02-documents.mp4
+│   │   ├── scene-03-dinner-shrug.mp4
+│   │   ├── scene-04-walking.mp4
+│   │   ├── scene-05-dinner-party.mp4
+│   │   └── scene-06-skyline.mp4
+│   ├── recordings/                  # Screen recordings from the live site
+│   │   ├── homepage-scroll.mp4
+│   │   ├── podcast-play.mp4
+│   │   ├── cityhall-scroll.mp4
+│   │   └── talk-to-kesha.mp4
+│   └── branding/
+│       └── listening-post-logo.svg
+└── package.json
+```
+
+### Brand Tokens (tokens.ts)
+
+```typescript
+export const TOKENS = {
+  darkBg: "#0a0a0a",
+  coral: "#D85A30",
+  white: "#FAFAF9",
+  muted: "#A8A29E",
+  headingFont: "Anybody",
+  bodyFont: "IBM Plex Sans",
+  fps: 30,
+  width: 1920,
+  height: 1080,
+  totalDuration: 90, // seconds
+};
+```
+
+### Scene Timing (frames at 30fps)
+
+| Scene | Start | End | Frames | Duration |
+|-------|-------|-----|--------|----------|
+| Cold Open | 0:00 | 0:08 | 0-240 | 8s |
+| The Problem | 0:08 | 0:18 | 240-540 | 10s |
+| Product Reveal | 0:18 | 0:30 | 540-900 | 12s |
+| The Experience | 0:30 | 0:50 | 900-1500 | 20s |
+| Side Effects | 0:50 | 1:10 | 1500-2100 | 20s |
+| Tech Flex | 1:10 | 1:18 | 2100-2340 | 8s |
+| The Close | 1:18 | 1:30 | 2340-2700 | 12s |
+
+---
+
+## ASSETS CHECKLIST
+
+### Screenshots to Capture (1920x1080, clean browser)
+
+| ID | What | Filename | Scene |
+|----|------|----------|-------|
+| S1 | Homepage with podcast hero + stories | `recordings/homepage-scroll.mp4` | Product Reveal |
+| S2 | Press play, podcast audio playing | `recordings/podcast-play.mp4` | Experience |
+| S3 | City Hall page — restaurants + legislation | `recordings/cityhall-scroll.mp4` | Experience |
+| S4 | Article page → click "Talk to Kesha" → orb appears → type "What does this bill do?" | `recordings/talk-to-kesha.mp4` | Experience |
+
+### Branding Assets
+
+| Asset | Source | Filename |
+|-------|--------|----------|
+| Logo | Create in Remotion | `branding/listening-post-logo.svg` |
+| Milwaukee City Hall photo | R2 | `branding/milwaukee-city-hall.jpg` |
+
+---
+
 ## HUMANIZER NOTES
 
 The script avoids AI slop by:
