@@ -66,29 +66,25 @@ listening-post.vercel.app
 
 ---
 
-### Thread
+### Long post (premium)
 
 The Milwaukee Journal Sentinel used to cover City Hall beat by beat. The money left. Most committee meetings go uncovered now. So I built an automated city desk in 7 days.
 
-1/ Every morning at 3 AM it pulls from Congress, Wisconsin's state legislature, FRED economic data, Milwaukee's Legistar system, and four other sources. It reads everything so you don't have to read five different government websites.
+Every morning at 3 AM it pulls from Congress, Wisconsin's state legislature, FRED economic data, Milwaukee's Legistar system, and four other sources. Then it writes a podcast script. Three hosts. Marcus anchors, Sarah does the deep dive, Kesha covers the capitol. ElevenLabs Text to Dialogue generates their conversation. They hand off, interrupt each other, react. It sounds like public radio.
 
-2/ Then it writes a podcast script. Three hosts. Marcus anchors, Sarah does the deep dive, Kesha covers the capitol. ElevenLabs Text to Dialogue generates their conversation. They hand off, interrupt each other, react. It sounds like public radio.
+There's an intro jingle the Music API wrote. Transition stingers from Sound Effects. An outro. Publishes by 6 AM. I'm usually still asleep.
 
-3/ There's an intro jingle the Music API wrote. Transition stingers from Sound Effects. An outro. The whole thing stitches together and publishes by 6 AM. I'm usually still asleep.
+The part I didn't expect to work this well: you can talk to the reporter. Any article. Click "Talk to Kesha." Ask her about the legislation, the economic context, whatever. She searches the web if she doesn't know.
 
-4/ The part I didn't expect to work this well: you can talk to the reporter. Any article. Click "Talk to Kesha." Ask her about the legislation, the economic context, whatever. She searches the web if she doesn't know. It's ElevenLabs Conversational AI with a Perplexity search tool.
+The City Hall page scrapes Milwaukee's LIRA system for new restaurant license applications. Found 17 this week. Eggrollicious on Menomonee River Parkway. Crab Legs and Sushi on Mitchell Street. Neighborhood news nobody else is covering.
 
-5/ The City Hall page scrapes Milwaukee's LIRA system for new restaurant license applications. It found 17 this week. Eggrollicious on Menomonee River Parkway. Crab Legs and Sushi on Mitchell Street. That's neighborhood news that nobody else is covering.
-
-6/ Runs on Cloudflare's edge. Seven services. Cron triggers fire twice daily. The whole thing is autonomous. I check on it like you'd check on a plant.
-
-7/ I'm not a developer. I'm an architect who builds with Claude Code. My first program was a blackjack game in BASIC on a TI-99/4A in 1983. I was 10. It took 43 years to get from that to this.
+I'm not a developer. I'm an architect who builds with Claude Code. My first program was a blackjack game in BASIC on a TI-99/4A in 1983. I was 10. It took 43 years to get from that to this.
 
 Local news didn't die because nobody needed it.
 
 listening-post.vercel.app
 
-Built for #ElevenHacks @elevaborapi @CloudflareDev
+Built for #ElevenHacks @elevenlabsio @CloudflareDev
 
 ---
 
