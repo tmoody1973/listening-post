@@ -24,7 +24,9 @@ Side effects may include knowing what your representatives actually voted on.
 
 listening-post.vercel.app
 
-#BuildInPublic #ClaudeCode #Cloudflare #ElevenLabs #LocalNews #Milwaukee
+Built for #ElevenHacks (Cloudflare × ElevenLabs hackathon).
+
+#BuildInPublic #ClaudeCode #Cloudflare #ElevenLabs #LocalNews #Milwaukee #ElevenHacks
 
 ---
 
@@ -88,6 +90,8 @@ Local news didn't die because nobody needed it.
 
 listening-post.vercel.app
 
+Built for #ElevenHacks @elevaborapi @CloudflareDev
+
 ---
 
 ### Tweet: The one-liner
@@ -118,6 +122,8 @@ The Listening Post runs autonomously on Cloudflare's edge with ElevenLabs voice 
 Ask your city council about The Listening Post today.
 
 listening-post.vercel.app
+
+Built for #ElevenHacks
 
 ---
 
@@ -251,7 +257,7 @@ End card: THE LISTENING POST
 
 ## HASHTAGS
 
-Always: #BuildInPublic #Cloudflare #ElevenLabs #LocalNews
+Always: #BuildInPublic #ElevenHacks #Cloudflare #ElevenLabs #LocalNews
 
 Rotate: #ClaudeCode #Milwaukee #CivicTech #SoloFounder #IndieHacker
 
