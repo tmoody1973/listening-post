@@ -6,11 +6,9 @@
 
 ### Post 1: The origin story
 
-1,800 local newsrooms have closed since 2005.
+The Milwaukee Journal Sentinel used to have enough reporters to cover City Hall beat by beat. Now most committee meetings go uncovered. It's not that the reporters were bad. The money left.
 
-Milwaukee used to have reporters at every city council meeting. Every zoning fight. Every school board vote. Now nobody's there.
-
-So I built an AI newsroom. In a week. I'm not even a developer. I'm a Howard-trained architect with Claude Code and 20 years of being annoyed that I can't find out what my alderperson voted on.
+So I built an automated city desk. In a week. I'm not even a developer. I'm a Howard-trained architect with Claude Code and 20 years of being annoyed that I can't find out what my alderperson voted on.
 
 It has three AI hosts named Marcus, Sarah, and Kesha. Every morning at 6 AM they deliver a Milwaukee briefing. Congress, state legislature, economic data, new restaurant openings, the whole thing. I wake up and it's already done.
 
@@ -32,7 +30,7 @@ Built for #ElevenHacks (Cloudflare × ElevenLabs hackathon).
 
 ### Post 2: The tech under the hood
 
-There's something kind of unsettling about an AI newsroom that works harder than you do.
+There's something kind of unsettling about an automated city desk that works harder than you do.
 
 Every morning at 3 AM, mine wakes up. It pulls from Congress, the state legislature, Milwaukee's Legistar system, FRED economic data, Perigon, Perplexity, the city's building permit database, and a restaurant license scraper I built because I wanted to know what's opening on Mitchell Street.
 
@@ -56,9 +54,9 @@ listening-post.vercel.app
 
 ### Tweet 1: The hook
 
-1,800 local newsrooms have closed since 2005.
+The Milwaukee Journal Sentinel used to cover City Hall beat by beat. Now most committee meetings go uncovered. The money left.
 
-I built one back in a weekend.
+So I built an automated city desk. In a weekend.
 
 3 AI voices. 8 data sources. Daily podcast. $6/month to run.
 
@@ -70,7 +68,7 @@ listening-post.vercel.app
 
 ### Thread
 
-How I built an AI newsroom in 7 days. Not a summary. An actual newsroom.
+The Milwaukee Journal Sentinel used to cover City Hall beat by beat. The money left. Most committee meetings go uncovered now. So I built an automated city desk in 7 days.
 
 1/ Every morning at 3 AM it pulls from Congress, Wisconsin's state legislature, FRED economic data, Milwaukee's Legistar system, and four other sources. It reads everything so you don't have to read five different government websites.
 
@@ -106,7 +104,7 @@ Are you tired of not knowing what your city council voted on last Tuesday? Do yo
 
 Ask your representatives about The Listening Post.
 
-The Listening Post is a once-daily AI newsroom that delivers a Milwaukee morning briefing with three correspondents, real data from eight government sources, and a voice agent you can call with questions.
+The Listening Post is a once-daily automated city desk that delivers a Milwaukee morning briefing with three correspondents, real data from eight government sources, and a voice agent you can call with questions.
 
 In clinical trials, residents reported:
 - knowing what legislation their reps were pushing
@@ -226,7 +224,7 @@ End card: THE LISTENING POST
 
 [You on camera]
 
-"I built an AI newsroom that runs itself."
+"I built an automated city desk that runs itself."
 
 [Click Talk to Kesha on an article]
 
