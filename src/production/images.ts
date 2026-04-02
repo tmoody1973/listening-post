@@ -118,7 +118,7 @@ export async function generateMissingImages(env: Env): Promise<number> {
      WHERE (image_url IS NULL OR image_url = '')
      AND headline IS NOT NULL
      ORDER BY created_at DESC
-     LIMIT 10`
+     LIMIT 20`
   ).all();
 
   const stories = result.results ?? [];

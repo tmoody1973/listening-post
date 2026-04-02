@@ -353,11 +353,11 @@ app.get("/api/stories", async (c) => {
   // Show all stories — published filter removed since most stories
   // are ingested without explicit publish step
   const publishedFilter = "";
-  let query = `SELECT * FROM stories WHERE 1=1 ${publishedFilter} ORDER BY created_at DESC LIMIT 20`;
+  let query = `SELECT * FROM stories WHERE image_url IS NOT NULL AND body IS NOT NULL AND length(body) > 100 ORDER BY created_at DESC LIMIT 20`;
   const params: string[] = [];
 
   if (topic) {
-    query = `SELECT * FROM stories WHERE topic = ? ${publishedFilter} ORDER BY created_at DESC LIMIT 20`;
+    query = `SELECT * FROM stories WHERE topic = ? AND image_url IS NOT NULL AND body IS NOT NULL AND length(body) > 100 ORDER BY created_at DESC LIMIT 20`;
     params.push(topic);
   }
 
@@ -412,7 +412,7 @@ app.get("/api/topic/:topic", async (c) => {
 
   const [stories, bills] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT * FROM stories WHERE topic = ? ORDER BY created_at DESC LIMIT 20"
+      "SELECT * FROM stories WHERE topic = ? AND image_url IS NOT NULL AND body IS NOT NULL AND length(body) > 100 ORDER BY created_at DESC LIMIT 20"
     ).bind(topic).all(),
     c.env.DB.prepare(
       "SELECT * FROM bills WHERE topic = ? ORDER BY updated_at DESC LIMIT 10"
